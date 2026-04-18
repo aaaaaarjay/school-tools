@@ -48,7 +48,7 @@ const TOOLS = [
     description: 'Admin panel for generating time slots, managing bookings, and auto-cleanup of expired schedules.',
     icon: 'fas fa-clock',
     iconClass: 'tool-icon-cyan',
-    path: 'tools/schedule/index.html',
+    path: 'scheduler/index.html',
     category: 'scheduling',
     isScheduleAdmin: true
   },

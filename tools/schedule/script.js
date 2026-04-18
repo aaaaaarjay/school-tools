@@ -871,6 +871,19 @@ function stopPolling() {
     }
 }
 
+// ================= COPY STUDENT LINK =================
+function copyStudentLink() {
+    // Build the clean student URL: origin + /scheduler/
+    const origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
+    const studentUrl = origin + '/scheduler/';
+    navigator.clipboard.writeText(studentUrl).then(() => {
+        showToast('Student link copied!', 'success');
+    }).catch(() => {
+        // Fallback
+        prompt('Copy this link:', studentUrl);
+    });
+}
+
 // ================= INIT =================
 document.addEventListener('DOMContentLoaded', () => {
     loadSchedule();

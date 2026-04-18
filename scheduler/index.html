@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scheduler</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../tools/schedule/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" type="image/png" href="/images/logo.png">
 </head>
@@ -33,9 +33,7 @@
                     <div id="schedule-container">
                         <div class="empty-state">
                             <i class="fas fa-clock"></i>
-                            <p><strong>ℹ️ Using local data:</strong> CORS error from file:// origin. Serve via
-                                http://localhost:8000 or deploy GAS properly. Add sample slots to test: Edit
-                                localStorage or Sheet when served.</p>
+                            <p>Loading schedule...</p>
                         </div>
                     </div>
                     <div id="booking-form" class="section-box" style="display:none;">
@@ -83,7 +81,8 @@
                     </div>
                     <button class="action-btn"
                         style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;"
-                        onclick="copyStudentLink()">                        <i class="fas fa-copy"></i> Copy Link
+                        onclick="copyStudentLink()">
+                        <i class="fas fa-copy"></i> Copy Link
                     </button>
                 </div>
 
@@ -179,7 +178,7 @@
         </main>
     </div>
 
-    <script src="script.js"></script>
+    <script src="../tools/schedule/script.js"></script>
 </body>
 
 </html>
