@@ -63,12 +63,19 @@ const TOOLS = [
   }
 ];
 
-// ── Default Credentials ──
-const DEFAULT_USERS = [
-  { username: 'aaaaaarjay', password: '120823', role: 'admin', displayName: 'Administrawr' }
+// ── Credentials (SHA-256 hashed — plaintext never stored) ──
+const INITIAL_USERS = [
+  {
+    usernameHash: 'c3b09db2eb5a5d3af2f7c9753621616316c31a8bcd3ee6b0b035c01204da26d7',
+    passwordHash: '3af1465c4bf99543fdd252a3d1efa742edb5009a32a808a57e26743e57d8c6c8',
+    role: 'admin',
+    displayName: 'Administrawr',
+    avatar: null
+  }
 ];
 
 const AUTH_KEY = 'schooltools_auth';
+const USERS_KEY = 'schooltools_users';
 const SIDEBAR_KEY = 'schooltools_sidebar';
 const LAST_TOOL_KEY = 'schooltools_last_tool';
 const THEME_KEY = 'schooltools_theme';
@@ -81,6 +88,28 @@ let sidebarCollapsed = false;
 // ══════════════════════════════════════════════════
 // AUTHENTICATION
 // ══════════════════════════════════════════════════
+
+async function sha256(text) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function getUsers() {
+  const saved = localStorage.getItem(USERS_KEY);
+  if (saved) {
+    try { return JSON.parse(saved); } catch (e) {}
+  }
+  // First run: seed with initial users
+  localStorage.setItem(USERS_KEY, JSON.stringify(INITIAL_USERS));
+  return [...INITIAL_USERS];
+}
+
+function saveUsers(users) {
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+}
 
 function initAuth() {
   const saved = localStorage.getItem(AUTH_KEY);
@@ -96,9 +125,13 @@ function initAuth() {
   showLogin();
 }
 
-function login(username, password) {
-  const user = DEFAULT_USERS.find(
-    u => u.username === username && u.password === password
+async function login(username, password) {
+  const userHash = await sha256(username);
+  const passHash = await sha256(password);
+
+  const users = getUsers();
+  const user = users.find(
+    u => u.usernameHash === userHash && u.passwordHash === passHash
   );
 
   if (!user) {
@@ -106,9 +139,11 @@ function login(username, password) {
   }
 
   currentUser = {
-    username: user.username,
+    usernameHash: userHash,
+    username: userHash.substring(0, 8),
     role: user.role,
     displayName: user.displayName,
+    avatar: user.avatar || null,
     loginTime: Date.now()
   };
 
@@ -179,7 +214,7 @@ function showDashboard() {
 // LOGIN UI
 // ══════════════════════════════════════════════════
 
-function handleLogin(e) {
+async function handleLogin(e) {
   e.preventDefault();
 
   const username = document.getElementById('loginUsername').value.trim();
@@ -194,16 +229,17 @@ function handleLogin(e) {
   btn.disabled = true;
   btn.textContent = 'Signing in...';
 
-  // Simulate small delay for UX
-  setTimeout(() => {
-    if (login(username, password)) {
-      showDashboard();
-    } else {
-      showLoginError('Invalid username or password.');
-      btn.disabled = false;
-      btn.textContent = 'Sign In';
-    }
-  }, 400);
+  // Small delay for UX, then authenticate with hashed comparison
+  await new Promise(r => setTimeout(r, 400));
+
+  const success = await login(username, password);
+  if (success) {
+    showDashboard();
+  } else {
+    showLoginError('Invalid username or password.');
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  }
 }
 
 function showLoginError(msg) {
@@ -233,7 +269,12 @@ function renderNavbar() {
     .substring(0, 2)
     .toUpperCase();
 
-  document.getElementById('navAvatar').textContent = initials;
+  const avatarEl = document.getElementById('navAvatar');
+  if (currentUser.avatar) {
+    avatarEl.innerHTML = `<img src="${currentUser.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+  } else {
+    avatarEl.textContent = initials;
+  }
   document.getElementById('navUsername').textContent = currentUser.displayName;
   document.getElementById('navRole').textContent = currentUser.role;
 }
@@ -326,9 +367,11 @@ function renderHome() {
 
   const homeView = document.getElementById('homeView');
   const toolView = document.getElementById('toolView');
+  const settingsView = document.getElementById('settingsView');
 
   homeView.style.display = 'block';
   toolView.classList.remove('active');
+  if (settingsView) settingsView.style.display = 'none';
 
   // Destroy previous iframe
   const iframe = document.getElementById('toolIframe');
@@ -398,11 +441,13 @@ function loadTool(toolId) {
 
   const homeView = document.getElementById('homeView');
   const toolView = document.getElementById('toolView');
+  const settingsView = document.getElementById('settingsView');
   const loader = document.getElementById('toolLoader');
   const iframe = document.getElementById('toolIframe');
 
   // Switch views
   homeView.style.display = 'none';
+  if (settingsView) settingsView.style.display = 'none';
   toolView.classList.add('active');
 
   // Show loader
@@ -1156,6 +1201,248 @@ function toggleTheme() {
 // ══════════════════════════════════════════════════
 // INITIALIZATION
 // ══════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════
+// SETTINGS PANEL
+// ══════════════════════════════════════════════════
+
+function showSettings() {
+  if (!currentUser) return;
+
+  // Hide other views
+  document.getElementById('homeView').style.display = 'none';
+  const toolView = document.getElementById('toolView');
+  toolView.style.display = ''; // Clear inline styles
+  toolView.classList.remove('active');
+  document.getElementById('settingsView').style.display = 'block';
+
+  currentTool = null;
+  updateBreadcrumb('Settings');
+  history.replaceState(null, '', '#settings');
+
+  // Populate current values
+  document.getElementById('settingsDisplayName').value = currentUser.displayName || '';
+
+  // Render avatar
+  const avatarEl = document.getElementById('settingsAvatar');
+  if (currentUser.avatar) {
+    avatarEl.innerHTML = `<img src="${currentUser.avatar}">`;
+  } else {
+    const initials = currentUser.displayName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+    avatarEl.textContent = initials;
+  }
+
+  // Clear credential fields
+  document.getElementById('settingsNewUsername').value = '';
+  document.getElementById('settingsNewPassword').value = '';
+  document.getElementById('settingsCurrentPassword').value = '';
+
+  // Clear add user fields
+  document.getElementById('newUserUsername').value = '';
+  document.getElementById('newUserPassword').value = '';
+  document.getElementById('newUserDisplayName').value = '';
+
+  // Render users list (admin only)
+  renderUsersList();
+
+  // Close mobile sidebar
+  closeMobileSidebar();
+}
+
+function saveProfile() {
+  const newName = document.getElementById('settingsDisplayName').value.trim();
+  if (!newName) {
+    alert('Display name cannot be empty.');
+    return;
+  }
+
+  // Update currentUser
+  currentUser.displayName = newName;
+  localStorage.setItem(AUTH_KEY, JSON.stringify(currentUser));
+
+  // Update in users list
+  const users = getUsers();
+  const userIdx = users.findIndex(u => u.usernameHash === currentUser.usernameHash);
+  if (userIdx !== -1) {
+    users[userIdx].displayName = newName;
+    saveUsers(users);
+  }
+
+  // Refresh navbar
+  renderNavbar();
+  alert('Profile saved!');
+}
+
+function handleAvatarUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (file.size > 500000) {
+    alert('Image too large. Please use an image under 500KB.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result;
+
+    // Update avatar in settings view
+    const avatarEl = document.getElementById('settingsAvatar');
+    avatarEl.innerHTML = `<img src="${base64}">`;
+
+    // Update currentUser
+    currentUser.avatar = base64;
+    localStorage.setItem(AUTH_KEY, JSON.stringify(currentUser));
+
+    // Update in users list
+    const users = getUsers();
+    const userIdx = users.findIndex(u => u.usernameHash === currentUser.usernameHash);
+    if (userIdx !== -1) {
+      users[userIdx].avatar = base64;
+      saveUsers(users);
+    }
+
+    // Refresh navbar
+    renderNavbar();
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveCredentials() {
+  const currentPwd = document.getElementById('settingsCurrentPassword').value;
+  const newUsername = document.getElementById('settingsNewUsername').value.trim();
+  const newPassword = document.getElementById('settingsNewPassword').value;
+
+  if (!currentPwd) {
+    alert('Please enter your current password to confirm changes.');
+    return;
+  }
+
+  if (!newUsername && !newPassword) {
+    alert('Enter a new username, new password, or both.');
+    return;
+  }
+
+  // Verify current password
+  const currentPwdHash = await sha256(currentPwd);
+  const users = getUsers();
+  const userIdx = users.findIndex(u => u.usernameHash === currentUser.usernameHash);
+
+  if (userIdx === -1 || users[userIdx].passwordHash !== currentPwdHash) {
+    alert('Current password is incorrect.');
+    return;
+  }
+
+  // Update username hash
+  if (newUsername) {
+    const newUsernameHash = await sha256(newUsername);
+    users[userIdx].usernameHash = newUsernameHash;
+    currentUser.usernameHash = newUsernameHash;
+    currentUser.username = newUsernameHash.substring(0, 8);
+  }
+
+  // Update password hash
+  if (newPassword) {
+    const newPasswordHash = await sha256(newPassword);
+    users[userIdx].passwordHash = newPasswordHash;
+  }
+
+  saveUsers(users);
+  localStorage.setItem(AUTH_KEY, JSON.stringify(currentUser));
+
+  // Clear fields
+  document.getElementById('settingsNewUsername').value = '';
+  document.getElementById('settingsNewPassword').value = '';
+  document.getElementById('settingsCurrentPassword').value = '';
+
+  alert('Credentials updated successfully!');
+}
+
+async function addUser() {
+  const username = document.getElementById('newUserUsername').value.trim();
+  const password = document.getElementById('newUserPassword').value;
+  const displayName = document.getElementById('newUserDisplayName').value.trim();
+
+  if (!username || !password || !displayName) {
+    alert('Please fill in all fields (username, password, display name).');
+    return;
+  }
+
+  const usernameHash = await sha256(username);
+  const passwordHash = await sha256(password);
+
+  const users = getUsers();
+
+  // Check for duplicate username
+  if (users.find(u => u.usernameHash === usernameHash)) {
+    alert('A user with this username already exists.');
+    return;
+  }
+
+  users.push({
+    usernameHash,
+    passwordHash,
+    role: 'user',
+    displayName,
+    avatar: null
+  });
+
+  saveUsers(users);
+
+  // Clear fields
+  document.getElementById('newUserUsername').value = '';
+  document.getElementById('newUserPassword').value = '';
+  document.getElementById('newUserDisplayName').value = '';
+
+  renderUsersList();
+  alert(`Teacher "${displayName}" added successfully!`);
+}
+
+function removeUser(usernameHash) {
+  if (!confirm('Are you sure you want to remove this user?')) return;
+
+  const users = getUsers().filter(u => u.usernameHash !== usernameHash);
+  saveUsers(users);
+  renderUsersList();
+}
+
+function renderUsersList() {
+  const container = document.getElementById('usersListContainer');
+  if (!container) return;
+
+  const users = getUsers();
+
+  if (users.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;">No users yet.</p>';
+    return;
+  }
+
+  let html = '<h4>All Accounts</h4>';
+  users.forEach(user => {
+    const initials = user.displayName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+    const isCurrentUser = user.usernameHash === currentUser.usernameHash;
+    const avatarStyle = user.role === 'admin'
+      ? 'background:linear-gradient(135deg,#6366f1,#8b5cf6);'
+      : 'background:linear-gradient(135deg,#22c55e,#16a34a);';
+
+    html += `
+      <div class="settings-user-item">
+        <div class="settings-user-info">
+          <div class="settings-user-avatar" style="${avatarStyle}">
+            ${user.avatar ? `<img src="${user.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : initials}
+          </div>
+          <div>
+            <div class="settings-user-name">${user.displayName}${isCurrentUser ? ' (You)' : ''}</div>
+            <div class="settings-user-role">${user.role}</div>
+          </div>
+        </div>
+        ${!isCurrentUser ? `<button class="settings-user-remove" onclick="removeUser('${user.usernameHash}')"><i class="fas fa-trash"></i> Remove</button>` : ''}
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();

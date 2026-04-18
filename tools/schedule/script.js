@@ -6,6 +6,7 @@ const BOOKINGS_SHEET = 'Bookings';
 
 const SCHEDULE_KEY = 'scheduler_slots';
 const BOOKINGS_KEY = 'scheduler_bookings';
+const SELECTED_DATE_KEY = 'scheduler_selected_date';
 
 let selectedSlot = null;
 let scheduleByDate = {};
@@ -28,7 +29,7 @@ function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
     ]);
 }
 
-async function fetchProxy(action, sheetName, data = null) {
+async function fetchProxy(action, sheetName, data = null, silent = false) {
     let url = `${GAS_URL}?action=${action}&sheet=${sheetName}`;
     if (data) {
         url += `&data=${encodeURIComponent(JSON.stringify(data))}`;
@@ -42,8 +43,10 @@ async function fetchProxy(action, sheetName, data = null) {
         return json.data !== undefined ? json.data : true;
     } catch (err) {
         console.error('API ERROR:', err);
-        showToast('⚠️ Online sync failed - using offline mode', 'warning');
-        return null; // Signals failure so offline mode kicks in
+        if (!silent) {
+            showToast('⚠️ Online sync failed - using offline mode', 'warning');
+        }
+        return null;
     }
 }
 
@@ -153,8 +156,11 @@ function renderScheduleUI(rawSchedule, rawBookings) {
     // Group schedule by date
     groupSchedule(rawSchedule);
 
-    // If current selectedDate is no longer valid, reset to first
-    if (!uniqueDates.includes(selectedDate)) {
+    // If current selectedDate is no longer valid, try saved date first, then reset to first
+    const savedDate = localStorage.getItem(SELECTED_DATE_KEY);
+    if (savedDate && uniqueDates.includes(savedDate)) {
+        selectedDate = savedDate;
+    } else if (!uniqueDates.includes(selectedDate)) {
         selectedDate = uniqueDates[0];
     }
 
@@ -178,6 +184,7 @@ function renderScheduleUI(rawSchedule, rawBookings) {
 
     // Display slots for selected date
     displaySlotsForDate(selectedDate);
+    updateSlotStats();
 }
 
 async function loadSchedule() {
@@ -201,9 +208,9 @@ async function loadSchedule() {
         `;
     }
 
-    // ── Step 2: Fetch from server in background to sync ──
-    let rawSchedule = await fetchProxy('GET', SCHEDULE_SHEET);
-    let rawBookings = await fetchProxy('GET', BOOKINGS_SHEET);
+    // ── Step 2: Fetch from server in background to sync (silent — no toast) ──
+    let rawSchedule = await fetchProxy('GET', SCHEDULE_SHEET, null, true);
+    let rawBookings = await fetchProxy('GET', BOOKINGS_SHEET, null, true);
 
     // Normalize: parse if returned as JSON string
     if (typeof rawSchedule === 'string') {
@@ -232,6 +239,8 @@ async function loadSchedule() {
 // ================= DISPLAY SLOTS =================
 function displaySlotsForDate(date) {
     selectedDate = date;
+    // Persist selected date
+    localStorage.setItem(SELECTED_DATE_KEY, date);
     const container = document.getElementById('schedule-container');
     const slots = scheduleByDate[date] || [];
     if (slots.length === 0) {
@@ -258,6 +267,7 @@ function displaySlotsForDate(date) {
         `;
     });
     container.innerHTML = html;
+    updateSlotStats();
 }
 
 // ================= SELECT SLOT =================
@@ -355,9 +365,14 @@ function toggleAdminMode() {
     }
 }
 
-function loginAdmin() {
+async function loginAdmin() {
     const pwd = document.getElementById('admin-pwd').value;
-    if (pwd === '120823') {
+    // SHA-256 hash comparison (plaintext never stored)
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(pwd));
+    const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+    if (hashHex === '3af1465c4bf99543fdd252a3d1efa742edb5009a32a808a57e26743e57d8c6c8') {
         isAdminLoggedIn = true;
         document.getElementById('login-error').style.display = 'none';
         document.getElementById('view-admin-login').classList.remove('active');
@@ -522,9 +537,15 @@ function populateAdminPreview() {
         renderAdminSlotList(e.target.value);
     };
 
-    // Render first
-    dropdown.value = uniqueDates[0];
-    renderAdminSlotList(uniqueDates[0]);
+    // Restore saved date if valid
+    const savedDate = localStorage.getItem(SELECTED_DATE_KEY);
+    if (savedDate && uniqueDates.includes(savedDate)) {
+        dropdown.value = savedDate;
+        renderAdminSlotList(savedDate);
+    } else {
+        dropdown.value = uniqueDates[0];
+        renderAdminSlotList(uniqueDates[0]);
+    }
 }
 
 function renderAdminSlotList(date) {
@@ -564,6 +585,7 @@ function renderAdminSlotList(date) {
         `;
     });
     list.innerHTML = html;
+    updateAdminSlotStats(date);
 }
 
 // ================= BULK DELETE =================
@@ -583,8 +605,12 @@ function updateBulkUI() {
     const checked = getCheckedSlots();
     const all = getAllSlotCheckboxes();
     const deleteBtn = document.getElementById('btnDeleteSelected');
+    const cancelBtn = document.getElementById('btnCancelSelected');
     const countLabel = document.getElementById('selectedCount');
     const selectAllLabel = document.getElementById('selectAllLabel');
+
+    // Check if any checked slots are booked
+    const hasBookedSelected = checked.some(slot => !!bookings[slot]);
 
     if (checked.length > 0) {
         deleteBtn.classList.add('active');
@@ -592,6 +618,15 @@ function updateBulkUI() {
     } else {
         deleteBtn.classList.remove('active');
         countLabel.textContent = '';
+    }
+
+    // Cancel button only active if booked slots are selected
+    if (cancelBtn) {
+        if (hasBookedSelected) {
+            cancelBtn.classList.add('active');
+        } else {
+            cancelBtn.classList.remove('active');
+        }
     }
 
     // Update select all label
@@ -661,6 +696,67 @@ async function deleteSelectedSlots() {
     renderScheduleUI(rawScheduleGlobal, bookings);
     populateAdminPreview();
     hideLoader();
+}
+
+// ================= BULK CANCEL BOOKINGS =================
+async function cancelSelectedBookings() {
+    const selectedSlots = getCheckedSlots();
+    const bookedSlots = selectedSlots.filter(slot => !!bookings[slot]);
+
+    if (bookedSlots.length === 0) {
+        showToast('No booked slots selected', 'warning');
+        return;
+    }
+
+    if (!confirm(`Cancel bookings for ${bookedSlots.length} slot(s)?\n\nThe slots will become available again.`)) return;
+
+    showLoader(`Cancelling ${bookedSlots.length} booking(s)...`);
+
+    // Use ATOMIC_UNBOOK for each (safe)
+    for (const slot of bookedSlots) {
+        await safeUnbookSlot(slot);
+    }
+
+    showToast(`Cancelled ${bookedSlots.length} booking(s)!`, 'success');
+
+    // Refresh UI from local state
+    groupSchedule(rawScheduleGlobal);
+    renderScheduleUI(rawScheduleGlobal, bookings);
+    populateAdminPreview();
+    hideLoader();
+}
+
+// ================= SLOT STATS =================
+function updateSlotStats() {
+    const statsEl = document.getElementById('slot-stats');
+    if (!statsEl) return;
+
+    const currentSlots = scheduleByDate[selectedDate] || [];
+    const total = currentSlots.length;
+    const booked = currentSlots.filter(s => !!bookings[s.full]).length;
+    const available = total - booked;
+
+    statsEl.innerHTML = `
+        <span class="stat-pill total"><i class="fas fa-clock"></i> ${total} Total</span>
+        <span class="stat-pill available"><i class="fas fa-check-circle"></i> ${available} Available</span>
+        <span class="stat-pill booked"><i class="fas fa-user"></i> ${booked} Booked</span>
+    `;
+}
+
+function updateAdminSlotStats(date) {
+    const statsEl = document.getElementById('admin-slot-stats');
+    if (!statsEl) return;
+
+    const currentSlots = scheduleByDate[date] || [];
+    const total = currentSlots.length;
+    const booked = currentSlots.filter(s => !!bookings[s.full]).length;
+    const available = total - booked;
+
+    statsEl.innerHTML = `
+        <span class="stat-pill total"><i class="fas fa-clock"></i> ${total} Total</span>
+        <span class="stat-pill available"><i class="fas fa-check-circle"></i> ${available} Available</span>
+        <span class="stat-pill booked"><i class="fas fa-user"></i> ${booked} Booked</span>
+    `;
 }
 
 async function unbookSlot(fullSlot) {
@@ -733,8 +829,8 @@ async function pollForUpdates() {
     try {
         let needsRerender = false;
 
-        // Silently fetch latest bookings from server
-        let rawBookings = await fetchProxy('GET', BOOKINGS_SHEET);
+        // Silently fetch latest bookings from server (no toast)
+        let rawBookings = await fetchProxy('GET', BOOKINGS_SHEET, null, true);
         if (typeof rawBookings === 'string') {
             try { rawBookings = JSON.parse(rawBookings); } catch (e) { rawBookings = null; }
         }
@@ -749,7 +845,7 @@ async function pollForUpdates() {
         }
 
         // Also fetch latest schedule (so students see added/removed slots)
-        let rawSchedule = await fetchProxy('GET', SCHEDULE_SHEET);
+        let rawSchedule = await fetchProxy('GET', SCHEDULE_SHEET, null, true);
         if (typeof rawSchedule === 'string') {
             try { rawSchedule = JSON.parse(rawSchedule); } catch (e) { rawSchedule = null; }
         }

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>1Nest Login</title>
+  <title>1Nest</title>
   <meta name="description"
     content="A centralized dashboard for managing school tools: attendance, grading, quizzes, scheduling, and more.">
 
@@ -64,6 +64,7 @@
           Sign In
         </button>
       </form>
+      <p class="developer">Developed by Azura — Arjay Alangcas.</p>
     </div>
   </div>
 
@@ -83,6 +84,12 @@
         <!-- Rendered by JS -->
       </nav>
       <div class="sidebar-footer">
+        <div class="sidebar-item" data-tooltip="Settings" onclick="showSettings()">
+          <div class="sidebar-item-icon">
+            <i class="fas fa-gear"></i>
+          </div>
+          <span class="sidebar-item-text">Settings</span>
+        </div>
         <div class="sidebar-item" data-tooltip="Sign Out" onclick="logout()" style="color: var(--danger);">
           <div class="sidebar-item-icon" style="color: var(--danger);">
             <i class="fas fa-right-from-bracket"></i>
@@ -179,6 +186,85 @@
           <iframe class="tool-iframe" id="toolIframe"
             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads"
             title="Tool Content"></iframe>
+        </div>
+      </div>
+
+      <!-- Settings View -->
+      <div class="settings-view" id="settingsView" style="display:none;">
+        <div class="settings-header">
+          <h2><i class="fas fa-gear"></i> Settings</h2>
+        </div>
+
+        <!-- Profile Section -->
+        <div class="settings-card">
+          <h3><i class="fas fa-user-circle"></i> Profile</h3>
+          <div class="settings-profile-row">
+            <div class="settings-avatar-wrap">
+              <div class="settings-avatar" id="settingsAvatar">AD</div>
+              <label class="settings-avatar-upload" title="Upload photo">
+                <i class="fas fa-camera"></i>
+                <input type="file" id="avatarUpload" accept="image/*" onchange="handleAvatarUpload(event)" hidden>
+              </label>
+            </div>
+            <div class="settings-profile-fields">
+              <div class="settings-field">
+                <label>Display Name</label>
+                <input type="text" id="settingsDisplayName" placeholder="Your name">
+              </div>
+              <button class="settings-save-btn" onclick="saveProfile()">
+                <i class="fas fa-check"></i> Save Profile
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Credentials Section -->
+        <div class="settings-card">
+          <h3><i class="fas fa-key"></i> Change Credentials</h3>
+          <div class="settings-fields-grid">
+            <div class="settings-field">
+              <label>New Username</label>
+              <input type="text" id="settingsNewUsername" placeholder="Enter new username">
+            </div>
+            <div class="settings-field">
+              <label>New Password</label>
+              <input type="password" id="settingsNewPassword" placeholder="Enter new password">
+            </div>
+          </div>
+          <div class="settings-field" style="margin-top:10px;">
+            <label>Confirm Current Password</label>
+            <input type="password" id="settingsCurrentPassword" placeholder="Enter current password to confirm">
+          </div>
+          <button class="settings-save-btn" onclick="saveCredentials()" style="margin-top:12px;">
+            <i class="fas fa-shield-halved"></i> Update Credentials
+          </button>
+        </div>
+
+        <!-- User Management Section -->
+        <div class="settings-card">
+          <h3><i class="fas fa-users-gear"></i> User Management</h3>
+          <p class="settings-desc">Add teacher accounts. They can log in with limited access.</p>
+          <div class="settings-fields-grid">
+            <div class="settings-field">
+              <label>Username</label>
+              <input type="text" id="newUserUsername" placeholder="Teacher username">
+            </div>
+            <div class="settings-field">
+              <label>Password</label>
+              <input type="password" id="newUserPassword" placeholder="Teacher password">
+            </div>
+          </div>
+          <div class="settings-field" style="margin-top:10px;">
+            <label>Display Name</label>
+            <input type="text" id="newUserDisplayName" placeholder="Teacher's full name">
+          </div>
+          <button class="settings-save-btn" onclick="addUser()" style="margin-top:12px;">
+            <i class="fas fa-user-plus"></i> Add Teacher
+          </button>
+
+          <div class="settings-users-list" id="usersListContainer">
+            <!-- Rendered by JS -->
+          </div>
         </div>
       </div>
 

@@ -30,6 +30,7 @@
                         <label for="date-dropdown">Select Date:</label>
                         <select id="date-dropdown"></select>
                     </div>
+                    <div id="slot-stats" class="slot-stats"></div>
                     <div id="schedule-container">
                         <div class="empty-state">
                             <i class="fas fa-clock"></i>
@@ -158,6 +159,7 @@
                         <label>Filter by Date:</label>
                         <select id="admin-preview-date-dropdown"></select>
                     </div>
+                    <div id="admin-slot-stats" class="slot-stats"></div>
                     <div class="bulk-toolbar" id="bulkToolbar">
                         <div class="bulk-toolbar-left">
                             <button class="btn-select-all" onclick="toggleSelectAll()">
@@ -165,9 +167,14 @@
                             </button>
                             <span class="selected-count" id="selectedCount"></span>
                         </div>
-                        <button class="btn-delete-selected" id="btnDeleteSelected" onclick="deleteSelectedSlots()">
-                            <i class="fas fa-trash"></i> Delete Selected
-                        </button>
+                        <div class="bulk-toolbar-right">
+                            <button class="btn-cancel-selected" id="btnCancelSelected" onclick="cancelSelectedBookings()">
+                                <i class="fas fa-user-times"></i> Cancel Bookings
+                            </button>
+                            <button class="btn-delete-selected" id="btnDeleteSelected" onclick="deleteSelectedSlots()">
+                                <i class="fas fa-trash"></i> Delete Selected
+                            </button>
+                        </div>
                     </div>
                     <ul id="slot-list">
                         <!-- Admin slot preview list populated here -->
