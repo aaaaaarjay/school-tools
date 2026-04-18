@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz - Online Quiz System</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <div class="student-layout">
+    <!-- Header -->
+    <header class="student-header">
+      <div class="student-header-top">
+        <div class="student-info">
+          <span>📝 <strong id="quiz-title-display"></strong></span>
+          <span>|</span>
+          <span>👤 <span id="student-name-display"></span></span>
+        </div>
+        <div class="cheat-counter" id="cheat-counter">
+          ⚠️ Warnings: <span id="cheat-count">0</span>/3
+        </div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="progress-text" id="progress-text">0 / 0 answered</div>
+    </header>
+
+    <!-- Questions Container -->
+    <div class="student-content" id="questions-area"></div>
+
+    <!-- Navigation (one-by-one mode) -->
+    <div class="quiz-navigation hidden" id="quiz-nav">
+      <button class="btn btn-outline" id="nav-prev" onclick="navigateQuestion(-1)">← Previous</button>
+      <span class="quiz-nav-info" id="nav-info">Question 1 of 1</span>
+      <button class="btn btn-primary" id="nav-next" onclick="navigateQuestion(1)">Next →</button>
+    </div>
+
+    <!-- Submit Area -->
+    <div class="submit-area" id="submit-area">
+      <p class="mb-2" style="color:var(--text-secondary);">Make sure you've answered all questions before submitting.</p>
+      <button class="btn btn-gradient btn-lg" id="submit-btn" onclick="submitQuiz()">📤 Submit Quiz</button>
+    </div>
+
+    <!-- Results -->
+    <div class="results-container hidden" id="results-area"></div>
+  </div>
+
+  <!-- Cheat Warning Overlay -->
+  <div class="cheat-warning" id="cheat-warning">
+    <div class="cheat-warning-card">
+      <div class="cheat-warning-icon">⚠️</div>
+      <h2>Warning!</h2>
+      <p id="cheat-warning-message">Suspicious activity detected.</p>
+      <div class="cheat-warning-count">Warning <span id="cheat-warning-num">1</span> of 3</div>
+      <button class="btn btn-warning btn-lg" onclick="dismissCheatWarning()">I Understand</button>
+    </div>
+  </div>
+
+  <!-- Blocked Overlay -->
+  <div class="blocked-overlay" id="blocked-overlay">
+    <div class="blocked-card">
+      <div class="blocked-icon">🚫</div>
+      <h2>You Have Been Blocked</h2>
+      <p>You have been blocked from this quiz due to multiple cheating violations. Your quiz has been auto-submitted.</p>
+      <div class="mt-3">
+        <button class="btn btn-outline" onclick="window.location.href='/'">← Back to Home</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script>
+    // ============================================================
+    // State
+    // ============================================================
+    const studentData = JSON.parse(sessionStorage.getItem('student') || 'null');
+    const quizData = JSON.parse(sessionStorage.getItem('quiz') || 'null');
+    let questions = JSON.parse(sessionStorage.getItem('questions') || '[]');
+
+    if (!studentData || !quizData || questions.length === 0) {
+      window.location.href = '/';
+    }
+
+    const socket = io();
+    let answers = {};
+    let cheatCount = 0;
+    let isSubmitted = false;
+    let isBlocked = false;
+    let currentQuestionIdx = 0;
+    const displayMode = quizData.display_mode || 'scroll';
+    const showScores = quizData.show_scores;
+
+    // Display info
+    document.getElementById('quiz-title-display').textContent = quizData.title;
+    document.getElementById('student-name-display').textContent = studentData.name;
+
+    // ============================================================
+    // Randomize questions and options
+    // ============================================================
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    // Shuffle questions
+    questions = shuffle(questions);
+
+    // Shuffle MC options
+    questions.forEach(q => {
+      if (q.question_type === 'multiple_choice' && q.options && q.options.length > 0) {
+        q.options = shuffle(q.options);
+      }
+    });
+
+    // ============================================================
+    // Render Questions
+    // ============================================================
+    function renderQuestions() {
+      const area = document.getElementById('questions-area');
+      area.innerHTML = '';
+
+      questions.forEach((q, idx) => {
+        const card = document.createElement('div');
+        card.className = 'question-card';
+        card.dataset.qid = q.id;
+        if (displayMode === 'one_by_one' && idx !== 0) card.classList.add('hidden-question');
+
+        const typeLabels = { identification: 'Identification', multiple_choice: 'Multiple Choice', true_false: 'True / False' };
+
+        let answerHTML = '';
+
+        if (q.question_type === 'identification') {
+          answerHTML = `<input type="text" class="identification-input" placeholder="Type your answer..." data-qid="${q.id}" oninput="handleAnswer(${q.id}, this.value)">`;
+        } else if (q.question_type === 'multiple_choice') {
+          answerHTML = '<div class="answer-options">';
+          q.options.forEach((opt, oi) => {
+            if (!opt) return;
+            const uid = `mc-${q.id}-${oi}`;
+            answerHTML += `
+              <div class="answer-option" onclick="selectMC(this, ${q.id}, '${escapeAttr(opt)}')">
+                <input type="radio" name="mc-${q.id}" id="${uid}" value="${escapeAttr(opt)}">
+                <label for="${uid}">${escapeHtml(opt)}</label>
+              </div>
+            `;
+          });
+          answerHTML += '</div>';
+        } else if (q.question_type === 'true_false') {
+          answerHTML = `
+            <div class="tf-options">
+              <div class="tf-option" onclick="selectTF(this, ${q.id}, 'True')">
+                <input type="radio" name="tf-${q.id}" value="True"> True
+              </div>
+              <div class="tf-option" onclick="selectTF(this, ${q.id}, 'False')">
+                <input type="radio" name="tf-${q.id}" value="False"> False
+              </div>
+            </div>
+          `;
+        }
+
+        card.innerHTML = `
+          <div class="question-header">
+            <span class="question-num">Question ${idx + 1}</span>
+            <span class="badge badge-primary question-type-badge">${typeLabels[q.question_type] || q.question_type}</span>
+          </div>
+          <div class="question-text">${escapeHtml(q.question_text)}</div>
+          <div class="question-points">${q.points} point${q.points !== 1 ? 's' : ''}</div>
+          ${answerHTML}
+        `;
+
+        area.appendChild(card);
+      });
+
+      updateProgress();
+
+      if (displayMode === 'one_by_one') {
+        document.getElementById('quiz-nav').classList.remove('hidden');
+        updateNavigation();
+      }
+    }
+
+    // ============================================================
+    // Answer Handlers
+    // ============================================================
+    function handleAnswer(qid, value) {
+      if (isSubmitted || isBlocked) return;
+      answers[qid] = [value.trim()];
+      updateProgress();
+    }
+
+    function selectMC(el, qid, value) {
+      if (isSubmitted || isBlocked) return;
+      const parent = el.closest('.answer-options');
+      parent.querySelectorAll('.answer-option').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+      el.querySelector('input[type="radio"]').checked = true;
+      answers[qid] = [value];
+      updateProgress();
+    }
+
+    function selectTF(el, qid, value) {
+      if (isSubmitted || isBlocked) return;
+      const parent = el.closest('.tf-options');
+      parent.querySelectorAll('.tf-option').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+      el.querySelector('input[type="radio"]').checked = true;
+      answers[qid] = [value];
+      updateProgress();
+    }
+
+    // ============================================================
+    // Progress
+    // ============================================================
+    function updateProgress() {
+      const total = questions.length;
+      const answered = Object.keys(answers).filter(k => answers[k] && answers[k][0]).length;
+      const pct = total > 0 ? (answered / total) * 100 : 0;
+      document.getElementById('progress-fill').style.width = pct + '%';
+      document.getElementById('progress-text').textContent = `${answered} / ${total} answered`;
+    }
+
+    // ============================================================
+    // Navigation (one-by-one)
+    // ============================================================
+    function navigateQuestion(dir) {
+      const cards = document.querySelectorAll('.question-card');
+      cards[currentQuestionIdx].classList.add('hidden-question');
+      currentQuestionIdx = Math.max(0, Math.min(cards.length - 1, currentQuestionIdx + dir));
+      cards[currentQuestionIdx].classList.remove('hidden-question');
+      updateNavigation();
+    }
+
+    function updateNavigation() {
+      const total = questions.length;
+      document.getElementById('nav-info').textContent = `Question ${currentQuestionIdx + 1} of ${total}`;
+      document.getElementById('nav-prev').disabled = currentQuestionIdx === 0;
+      document.getElementById('nav-next').textContent = currentQuestionIdx === total - 1 ? 'Finish →' : 'Next →';
+    }
+
+    // ============================================================
+    // Submit Quiz
+    // ============================================================
+    async function submitQuiz() {
+      if (isSubmitted) return;
+
+      const unanswered = questions.filter(q => !answers[q.id] || !answers[q.id][0]).length;
+      if (unanswered > 0) {
+        if (!confirm(`You have ${unanswered} unanswered question${unanswered > 1 ? 's' : ''}. Submit anyway?`)) return;
+      }
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+      isSubmitted = true;
+
+      const answerPayload = questions.map(q => ({
+        question_id: q.id,
+        answer: answers[q.id] || ['']
+      }));
+
+      try {
+        const res = await fetch(`/api/student/${studentData.id}/submit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answers: answerPayload })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        // Notify via socket
+        socket.emit('student-submit', {
+          studentId: studentData.id,
+          quizId: quizData.id,
+          studentName: studentData.name,
+          score: data.result
+        });
+
+        teardownAntiCheat();
+        showResults(data.result);
+      } catch (err) {
+        showToast('Submit failed: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = '📤 Submit Quiz';
+        isSubmitted = false;
+      }
+    }
+
+    function showResults(result) {
+      document.getElementById('questions-area').classList.add('hidden');
+      document.getElementById('submit-area').classList.add('hidden');
+      document.getElementById('quiz-nav').classList.add('hidden');
+      document.querySelector('.student-header').classList.add('hidden');
+
+      const area = document.getElementById('results-area');
+      area.classList.remove('hidden');
+
+      if (showScores) {
+        const pct = parseFloat(result.percentage);
+        const level = pct >= 75 ? 'high' : pct >= 50 ? 'medium' : 'low';
+        const messages = { high: '🎉 Excellent work!', medium: '👍 Good effort!', low: '📚 Keep studying!' };
+
+        area.innerHTML = `
+          <h1>Quiz Complete!</h1>
+          <div class="results-score-circle ${level}">
+            <div class="results-percentage">${pct}%</div>
+            <div class="results-label">${result.score}/${result.totalPoints}</div>
+          </div>
+          <p class="results-message">${messages[level]}</p>
+          <div class="results-actions">
+            <button class="btn btn-primary" onclick="window.location.href='/'">← Back to Home</button>
+          </div>
+        `;
+      } else {
+        area.innerHTML = `
+          <h1>Quiz Submitted!</h1>
+          <p class="results-message mt-2">Your answers have been recorded. Your teacher will share results later.</p>
+          <div class="results-actions mt-3">
+            <button class="btn btn-primary" onclick="window.location.href='/'">← Back to Home</button>
+          </div>
+        `;
+      }
+    }
+
+    // ============================================================
+    // Anti-Cheat System
+    // ============================================================
+    const antiCheatHandlers = {};
+
+    function setupAntiCheat() {
+      // Tab switch / visibility
+      antiCheatHandlers.visibility = () => {
+        if (document.hidden && !isSubmitted && !isBlocked) reportCheat('tab_switch');
+      };
+      document.addEventListener('visibilitychange', antiCheatHandlers.visibility);
+
+      // Window blur
+      antiCheatHandlers.blur = () => {
+        if (!isSubmitted && !isBlocked) reportCheat('window_blur');
+      };
+      window.addEventListener('blur', antiCheatHandlers.blur);
+
+      // Copy
+      antiCheatHandlers.copy = (e) => {
+        if (!isSubmitted && !isBlocked) { e.preventDefault(); reportCheat('copy_attempt'); }
+      };
+      document.addEventListener('copy', antiCheatHandlers.copy);
+
+      // Paste
+      antiCheatHandlers.paste = (e) => {
+        if (!isSubmitted && !isBlocked) { e.preventDefault(); reportCheat('paste_attempt'); }
+      };
+      document.addEventListener('paste', antiCheatHandlers.paste);
+
+      // Right-click
+      antiCheatHandlers.contextmenu = (e) => {
+        if (!isSubmitted && !isBlocked) { e.preventDefault(); reportCheat('right_click'); }
+      };
+      document.addEventListener('contextmenu', antiCheatHandlers.contextmenu);
+
+      // Keyboard shortcuts
+      antiCheatHandlers.keydown = (e) => {
+        if (isSubmitted || isBlocked) return;
+        // DevTools
+        if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j'))) {
+          e.preventDefault(); reportCheat('devtools'); return;
+        }
+        // View source
+        if (e.ctrlKey && (e.key === 'U' || e.key === 'u')) {
+          e.preventDefault(); reportCheat('view_source'); return;
+        }
+        // Copy/Paste shortcuts
+        if (e.ctrlKey && (e.key === 'C' || e.key === 'c')) {
+          e.preventDefault(); reportCheat('copy_shortcut'); return;
+        }
+        if (e.ctrlKey && (e.key === 'V' || e.key === 'v')) {
+          e.preventDefault(); reportCheat('paste_shortcut'); return;
+        }
+      };
+      document.addEventListener('keydown', antiCheatHandlers.keydown);
+    }
+
+    function teardownAntiCheat() {
+      document.removeEventListener('visibilitychange', antiCheatHandlers.visibility);
+      window.removeEventListener('blur', antiCheatHandlers.blur);
+      document.removeEventListener('copy', antiCheatHandlers.copy);
+      document.removeEventListener('paste', antiCheatHandlers.paste);
+      document.removeEventListener('contextmenu', antiCheatHandlers.contextmenu);
+      document.removeEventListener('keydown', antiCheatHandlers.keydown);
+    }
+
+    async function reportCheat(eventType) {
+      if (isSubmitted || isBlocked) return;
+      cheatCount++;
+
+      document.getElementById('cheat-counter').style.display = 'flex';
+      document.getElementById('cheat-count').textContent = cheatCount;
+
+      // Report to server
+      try {
+        const res = await fetch(`/api/student/${studentData.id}/cheat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event_type: eventType, details: '' })
+        });
+        const data = await res.json();
+
+        // Notify teacher via socket
+        socket.emit('cheat-detected', {
+          studentId: studentData.id,
+          quizId: quizData.id,
+          studentName: studentData.name,
+          eventType,
+          cheatCount
+        });
+
+        if (data.blocked || cheatCount >= 3) {
+          isBlocked = true;
+          socket.emit('student-blocked', {
+            studentId: studentData.id,
+            quizId: quizData.id,
+            studentName: studentData.name
+          });
+          showBlockedScreen();
+          // Auto-submit
+          autoSubmitBlocked();
+        } else {
+          showCheatWarning(eventType, cheatCount, 3 - cheatCount);
+        }
+      } catch (err) {
+        // Still show warning locally
+        if (cheatCount >= 3) {
+          isBlocked = true;
+          showBlockedScreen();
+          autoSubmitBlocked();
+        } else {
+          showCheatWarning(eventType, cheatCount, 3 - cheatCount);
+        }
+      }
+    }
+
+    async function autoSubmitBlocked() {
+      if (isSubmitted) return;
+      isSubmitted = true;
+      teardownAntiCheat();
+
+      const answerPayload = questions.map(q => ({
+        question_id: q.id,
+        answer: answers[q.id] || ['']
+      }));
+
+      try {
+        await fetch(`/api/student/${studentData.id}/submit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answers: answerPayload })
+        });
+      } catch (err) { /* ignore */ }
+    }
+
+    function showCheatWarning(eventType, count, remaining) {
+      const messages = {
+        'tab_switch': 'You switched away from the quiz tab.',
+        'window_blur': 'You clicked outside the quiz window.',
+        'copy_attempt': 'You attempted to copy content.',
+        'paste_attempt': 'You attempted to paste content.',
+        'right_click': 'You attempted to right-click.',
+        'devtools': 'You attempted to open developer tools.',
+        'view_source': 'You attempted to view the page source.',
+        'copy_shortcut': 'You used a copy keyboard shortcut.',
+        'paste_shortcut': 'You used a paste keyboard shortcut.'
+      };
+
+      document.getElementById('cheat-warning-message').textContent =
+        (messages[eventType] || 'Suspicious activity detected.') +
+        ` You have ${remaining} warning${remaining !== 1 ? 's' : ''} remaining.`;
+      document.getElementById('cheat-warning-num').textContent = count;
+      document.getElementById('cheat-warning').classList.add('active');
+    }
+
+    function dismissCheatWarning() {
+      document.getElementById('cheat-warning').classList.remove('active');
+    }
+
+    function showBlockedScreen() {
+      document.getElementById('blocked-overlay').classList.add('active');
+      teardownAntiCheat();
+    }
+
+    // ============================================================
+    // Utilities
+    // ============================================================
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function escapeAttr(text) {
+      if (!text) return '';
+      return text.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // ============================================================
+    // Init
+    // ============================================================
+    renderQuestions();
+    setupAntiCheat();
+
+    // Join socket room
+    socket.emit('student-join', {
+      studentId: studentData.id,
+      quizId: quizData.id,
+      studentName: studentData.name
+    });
+  </script>
+</body>
+</html>

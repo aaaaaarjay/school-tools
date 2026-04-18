@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Test GAS</title>
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxZnn-q1gBOd-cJThMXxDk1Iq1JjxqGjbCENyzbaibViyFKyAFdcdTTHiX0StHvLViw/exec';
+async function test() {
+  const url = `${GAS_URL}?action=GET&sheet=Schedule`;
+  const res = await fetch(url);
+  const text = await res.text();
+  document.body.innerHTML += '<pre>' + text + '</pre>';
+}
+test();
+</script>

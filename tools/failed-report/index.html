@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>Failed Students Report</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "tertiary-fixed-dim": "#ffb59d",
+            "secondary-container": "#cfe6f2",
+            "primary": "#000666",
+            "outline-variant": "#c6c5d4",
+            "on-tertiary-container": "#e17c5a",
+            "on-secondary-container": "#526772",
+            "surface-bright": "#f9f9f9",
+            "on-secondary-fixed": "#071e27",
+            "background": "#f9f9f9",
+            "on-tertiary-fixed-variant": "#7b2e12",
+            "on-error-container": "#93000a",
+            "secondary-fixed-dim": "#b4cad6",
+            "tertiary": "#380b00",
+            "error": "#ba1a1a",
+            "inverse-on-surface": "#f1f1f1",
+            "surface-variant": "#e2e2e2",
+            "primary-fixed": "#e0e0ff",
+            "surface-container-low": "#f3f3f3",
+            "on-secondary-fixed-variant": "#354a53",
+            "on-primary": "#ffffff",
+            "on-background": "#1a1c1c",
+            "outline": "#767683",
+            "on-tertiary-fixed": "#390c00",
+            "tertiary-fixed": "#ffdbd0",
+            "on-error": "#ffffff",
+            "surface-container-highest": "#e2e2e2",
+            "on-secondary": "#ffffff",
+            "on-primary-fixed": "#000767",
+            "surface": "#f9f9f9",
+            "surface-container": "#eeeeee",
+            "surface-dim": "#dadada",
+            "inverse-primary": "#bdc2ff",
+            "inverse-surface": "#2f3131",
+            "error-container": "#ffdad6",
+            "surface-tint": "#4c56af",
+            "primary-fixed-dim": "#bdc2ff",
+            "primary-container": "#1a237e",
+            "tertiary-container": "#5c1800",
+            "on-surface": "#1a1c1c",
+            "on-tertiary": "#ffffff",
+            "surface-container-lowest": "#ffffff",
+            "secondary": "#4c616c",
+            "on-primary-container": "#8690ee",
+            "on-surface-variant": "#454652",
+            "on-primary-fixed-variant": "#343d96",
+            "surface-container-high": "#e8e8e8",
+            "secondary-fixed": "#cfe6f2"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "fontFamily": {
+            "headline": ["Inter"],
+            "body": ["Inter"],
+            "label": ["Inter"]
+          }
+        },
+      },
+    }
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-surface text-on-surface min-h-screen">
+
+  <!-- LOADING SPLASH SCREEN -->
+  <div id="loadingScreen" class="loading-screen">
+    <div class="loading-container">
+      <div class="spinner"></div>
+      <h3 class="mt-8 text-white font-bold text-xl tracking-widest uppercase">Failed Report</h3>
+      <p class="text-white/70 mt-2 text-sm">Connecting to Database API...</p>
+      <div class="connection-status">
+        <span class="status-dot"></span>
+        <span class="status-text">Initializing...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div id="mainContent" style="display: none;">
+    <!-- Top Navigation Bar -->
+    <header class="fixed top-0 w-full z-50 bg-[#f3f3f3] shadow-sm dark:shadow-none">
+      <div class="flex items-center justify-between px-8 h-16 w-full max-w-full">
+        <div class="flex items-center gap-8">
+          <span class="text-lg font-bold text-[#000666] uppercase tracking-widest">
+            Failed Report
+          </span>
+          <nav class="hidden md:flex items-center gap-6">
+            <a class="font-medium text-sm tracking-tight text-[#1a237e] border-b-2 border-[#1a237e] pb-1"
+              href="index.html">Create Failed Report</a>
+            <a class="font-medium text-sm tracking-tight text-[#454652] hover:text-[#1a237e] transition-all duration-200"
+              href="database.html">Students Sheets</a>
+          </nav>
+        </div>
+        <div class="flex items-center gap-4">
+          <button class="p-2 transition-all duration-200 hover:bg-slate-200 rounded-lg">
+            <i class="bi bi-person-circle text-[#1a237e] text-xl"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="pt-24 pb-20 px-4 md:px-8 max-w-7xl mx-auto">
+      <!-- Header -->
+      <div class="mb-10 text-center">
+        <h1 class="text-primary font-extrabold text-4xl md:text-5xl tracking-tight mb-2">Student Failed Narrative Report
+        </h1>
+        <p class="text-on-surface-variant text-lg">Comprehensive documentation of academic hurdles and intervention
+          outcomes.</p>
+      </div>
+
+      <form id="studentForm" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <input type="hidden" id="originalSheetName">
+
+        <!-- Left Column: Global Sidebar -->
+        <aside class="lg:col-span-4 space-y-8 lg:sticky lg:top-24">
+          
+          <div class="flex justify-between items-center bg-surface-container-low px-6 py-4 rounded-xl border border-outline-variant/30 shadow-sm">
+             <span class="text-sm font-bold text-on-surface-variant uppercase tracking-wider">Global Settings</span>
+             <button type="button" id="btnToggleLock" onclick="toggleGlobalsLock()" class="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-surface-container-highest text-on-surface-variant hover:bg-surface-dim transition-all border border-outline-variant/50">
+                 <i class="bi bi-unlock-fill text-[#e0a800]" id="iconLock"></i> <span id="textLock">Unlocked</span>
+             </button>
+          </div>
+
+          <div class="bg-surface-container-low p-6 rounded-xl border-l-4 border-primary shadow-sm">
+            <h2 class="text-primary font-bold text-lg mb-6 flex items-center gap-2">
+              <i class="bi bi-shield-lock"></i>
+              Administrative
+            </h2>
+            <div class="space-y-6">
+              <div>
+                <label class="block text-xs font-bold text-on-secondary-fixed-variant uppercase tracking-wider mb-2 ml-1">College</label>
+                <select id="college" class="w-full bg-surface-container-lowest border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all text-on-surface">
+                  <option value="" disabled selected>Select a College...</option>
+                  <option value="College of Information Technology">College of Information Technology</option>
+                  <option value="College of Criminology">College of Criminology</option>
+                  <option value="College of Elementary Education">College of Elementary Education</option>
+                  <option value="College of Secondary Education">College of Secondary Education</option>
+                  <option value="College of Tourism Management">College of Tourism Management</option>
+                  <option value="College of Hospitality Management">College of Hospitality Management</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-on-secondary-fixed-variant uppercase tracking-wider mb-2 ml-1">Academic Year</label>
+                <div class="flex gap-2 items-center text-sm">
+                  <input id="ayStart" type="number" class="w-20 flex-1 bg-surface-container-lowest border-none rounded-lg p-3 text-center focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all" placeholder="2023" data-scrollable />
+                  <span class="text-on-surface-variant font-bold">-</span>
+                  <input id="ayEnd" type="number" class="w-20 flex-1 bg-surface-container-lowest border-none rounded-lg p-3 text-center focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all" placeholder="2024" data-scrollable />
+                </div>
+                <select id="aySemester" class="w-full mt-2 bg-surface-container-lowest border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all text-on-surface">
+                  <option value="" disabled selected>Select Semester...</option>
+                  <option value="1st Semester">1st Semester</option>
+                  <option value="2nd Semester">2nd Semester</option>
+                  <option value="Summer">Summer</option>
+                </select>
+              </div>
+              <div>
+                <label
+                  class="block text-xs font-bold text-on-secondary-fixed-variant uppercase tracking-wider mb-2 ml-1">Report
+                  Period</label>
+                <input id="reportPeriod"
+                  class="w-full bg-surface-container-lowest border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all"
+                  placeholder="PRELIM" type="text" data-scrollable />
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-8">
+            <h2 class="text-primary font-bold text-lg mb-2 flex items-center gap-2">
+              <i class="bi bi-pen"></i>
+              Signatories
+            </h2>
+            <div class="space-y-8">
+              <div class="space-y-2">
+                <div class="border-b border-outline-variant flex items-end px-2 pb-1">
+                  <input id="preparedBy"
+                    class="w-full bg-transparent border-none p-0 focus:ring-0 text-center text-sm font-medium"
+                    placeholder="Full Name" type="text" data-scrollable />
+                </div>
+                <p class="text-[10px] font-bold text-on-secondary-fixed-variant text-center uppercase tracking-tighter">
+                  Prepared By</p>
+              </div>
+              <div class="space-y-2">
+                <div class="border-b border-outline-variant flex items-end px-2 pb-1">
+                  <input id="notedBy"
+                    class="w-full bg-transparent border-none p-0 focus:ring-0 text-center text-sm font-medium"
+                    placeholder="Full Name" type="text" data-scrollable />
+                </div>
+                <p class="text-[10px] font-bold text-on-secondary-fixed-variant text-center uppercase tracking-tighter">
+                  Noted By</p>
+              </div>
+              <div class="space-y-2">
+                <div class="border-b border-outline-variant flex items-end px-2 pb-1">
+                  <input id="approvedBy"
+                    class="w-full bg-transparent border-none p-0 focus:ring-0 text-center text-sm font-medium"
+                    placeholder="Full Name" type="text" data-scrollable />
+                </div>
+                <p class="text-[10px] font-bold text-on-secondary-fixed-variant text-center uppercase tracking-tighter">
+                  Approved By</p>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Right Column: Student Centered Information -->
+        <div class="lg:col-span-8 space-y-8">
+          
+          <!-- Mode Tabs -->
+          <div class="bg-surface-container-lowest p-2 rounded-xl shadow-sm flex gap-2 border border-outline-variant/30">
+             <button type="button" id="tabAddMode" onclick="setFormMode('ADD')" 
+                class="flex-1 py-3 text-sm font-bold rounded-lg bg-primary text-white shadow-md transition-all uppercase tracking-widest flex justify-center items-center gap-2">
+                 <i class="bi bi-file-earmark-plus"></i> Add Report
+             </button>
+             <button type="button" id="tabEditMode" onclick="setFormMode('EDIT')" 
+                class="flex-1 py-3 text-sm font-bold rounded-lg bg-transparent text-on-surface-variant hover:bg-surface-container-high transition-all uppercase tracking-widest flex justify-center items-center gap-2">
+                 <i class="bi bi-pencil-square"></i> Edit Report
+             </button>
+             <button type="button" id="tabBulkMode" onclick="setFormMode('BULK')" 
+                class="flex-1 py-3 text-sm font-bold rounded-lg bg-transparent text-on-surface-variant hover:bg-surface-container-high transition-all uppercase tracking-widest flex justify-center items-center gap-2">
+                 <i class="bi bi-file-earmark-spreadsheet"></i> Text Import
+             </button>
+          </div>
+
+          <div id="standardFormSection" class="space-y-8">
+              <!-- Student Header Info -->
+              <section class="bg-surface-container-lowest p-8 rounded-xl shadow-sm">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="col-span-full">
+                <label class="block text-sm font-semibold text-on-secondary-fixed-variant mb-2 ml-1">Student
+                  Name</label>
+                <input id="studentName" required
+                  class="w-full bg-surface-container-highest border-none rounded-xl p-4 focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all placeholder:text-on-surface-variant/50"
+                  placeholder="Enter student's full name" type="text" data-scrollable />
+              </div>
+              <div class="col-span-full">
+                <label class="block text-sm font-semibold text-on-secondary-fixed-variant mb-2 ml-1">Course &
+                  Year</label>
+                <input id="courseYear"
+                  class="w-full bg-surface-container-highest border-none rounded-xl p-4 focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all"
+                  placeholder="BS Psychology - 3rd Year" type="text" data-scrollable />
+              </div>
+            </div>
+          </section>
+
+          <!-- Incident Background -->
+          <section class="bg-surface-container-low p-8 rounded-xl">
+            <h2 class="text-primary font-bold text-xl mb-6 flex items-center gap-2">
+              <i class="bi bi-file-earmark-text"></i>
+              Incident Narrative
+            </h2>
+            <div class="space-y-6">
+              <div>
+                <label class="block text-sm font-semibold text-on-secondary-fixed-variant mb-2 ml-1">Subject/s</label>
+                <textarea id="subjects"
+                  class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all scrollable"
+                  placeholder="List the affected subjects..." rows="2"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-on-secondary-fixed-variant mb-2 ml-1">How he/she
+                  failed</label>
+                <textarea id="howFailed"
+                  class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all scrollable"
+                  placeholder="Mode of failure..." rows="2"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-on-secondary-fixed-variant mb-2 ml-1">What
+                  happened</label>
+                <textarea id="whatHappened"
+                  class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all scrollable"
+                  placeholder="Detailed narrative..." rows="3"></textarea>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label class="block text-sm font-semibold text-on-secondary-fixed-variant mb-2 ml-1">When it
+                    started</label>
+                  <textarea id="whenStarted"
+                    class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all scrollable"
+                    rows="2"></textarea>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-on-secondary-fixed-variant mb-2 ml-1">Why it
+                    happened</label>
+                  <textarea id="whyHappened"
+                    class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all scrollable"
+                    rows="2"></textarea>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Status Toggles -->
+          <section class="bg-surface-container-lowest p-6 rounded-xl shadow-sm">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+              <span class="text-sm font-bold text-on-secondary-fixed-variant uppercase tracking-wider">Current Status
+                Action:</span>
+              <input type="hidden" id="stoppedWithdrawDropout" value="">
+              <div class="inline-flex p-1 bg-surface-container rounded-xl gap-1" id="statusButtonGroup">
+                <button type="button" onclick="setStatus('Stopped', this)"
+                  class="status-btn px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 bg-transparent text-on-surface-variant hover:bg-[#c8e6c9]">Stopped</button>
+                <button type="button" onclick="setStatus('Withdraw', this)"
+                  class="status-btn px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 bg-transparent text-on-surface-variant hover:bg-[#c8e6c9]">Withdraw</button>
+                <button type="button" onclick="setStatus('Dropout', this)"
+                  class="status-btn px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 bg-transparent text-on-surface-variant hover:bg-[#c8e6c9]">Dropout</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Interventions -->
+          <section class="bg-surface-container-low p-8 rounded-xl border-l-4 border-primary">
+            <h2 class="text-primary font-bold text-xl mb-6 flex items-center gap-2">
+              <i class="bi bi-bar-chart-line"></i>
+              Interventions & Assessments
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-6">
+                <div>
+                  <label class="block text-sm font-semibold text-on-secondary-fixed-variant mb-2 ml-1">Student’s
+                    Awareness</label>
+                  <textarea id="studentAwareness"
+                    class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all scrollable"
+                    rows="2"></textarea>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-on-secondary-fixed-variant mb-2 ml-1">Parent’s
+                    Acknowledgment</label>
+                  <textarea id="parentAcknowledgment"
+                    class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all scrollable"
+                    rows="2"></textarea>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-on-secondary-fixed-variant mb-2 ml-1">Remedial
+                    Teaching</label>
+                  <textarea id="remedialTeaching"
+                    class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all scrollable"
+                    rows="2"></textarea>
+                </div>
+              </div>
+              <div class="space-y-6">
+                <div>
+                  <label class="block text-sm font-semibold text-on-secondary-fixed-variant mb-2 ml-1">Performance
+                    Assessment</label>
+                  <textarea id="performanceAssessment"
+                    class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all scrollable"
+                    rows="2"></textarea>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-on-secondary-fixed-variant mb-2 ml-1">Given
+                    activities/exercises/removal exams</label>
+                  <textarea id="activitiesExercisesRemoval"
+                    class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all scrollable"
+                    placeholder="List supporting activities..." rows="6"></textarea>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Conclusion & Remarks -->
+          <section class="bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-surface-container-high">
+            <div class="mb-8">
+              <label class="block text-sm font-semibold text-on-secondary-fixed-variant mb-2 ml-1">Final Remarks
+                (Summary)</label>
+              <textarea id="ifFailedReasons"
+                class="w-full bg-surface-container-highest border-none rounded-xl p-4 focus:ring-2 focus:ring-primary focus:ring-opacity-40 transition-all scrollable"
+                placeholder="Final summary and recommendations..." rows="3"></textarea>
+            </div>
+
+            <input type="hidden" id="failedPassed" value="">
+            <div class="grid grid-cols-2 gap-4" id="resultButtonGroup">
+              <button type="button" onclick="setResult('FAILED', this)"
+                class="result-btn group relative overflow-hidden bg-white border-2 border-surface-container-high text-on-surface-variant font-bold py-6 rounded-xl hover:bg-error hover:text-white hover:border-error transition-all flex flex-col items-center justify-center gap-1">
+                <i class="bi bi-x-lg text-3xl"></i>
+                <span class="uppercase tracking-widest text-lg">Failed</span>
+              </button>
+              <button type="button" onclick="setResult('PASSED', this)"
+                class="result-btn group relative overflow-hidden bg-white border-2 border-surface-container-high text-on-surface-variant font-bold py-6 rounded-xl hover:bg-[#1a237e] hover:text-white hover:border-[#1a237e] transition-all flex flex-col items-center justify-center gap-1">
+                <i class="bi bi-check-lg text-3xl"></i>
+                <span class="uppercase tracking-widest text-lg">Passed</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- Form Action Buttons -->
+          <div class="bg-surface-container-lowest p-6 rounded-xl flex flex-col sm:flex-row gap-4 justify-end shadow-sm">
+            <button type="button"
+              class="px-6 py-3 bg-surface-container text-on-surface font-bold rounded-xl hover:bg-surface-dim transition-all"
+              onclick="resetForm()">Clear Form</button>
+            <button type="button" id="btnUpdate" style="display:none;"
+              class="px-8 py-3 bg-[#e0a800] text-white font-bold rounded-xl shadow-md transition-all uppercase tracking-wider text-sm"
+              onclick="updateStudent()">Update Report</button>
+            <button type="button" id="btnSave" onclick="saveStudent()"
+              class="px-8 py-3 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:bg-primary-container transition-all uppercase tracking-wider text-sm">Save
+              Report</button>
+          </div>
+        </div>
+
+        <!-- BULK IMPORT SECTION -->
+        <div id="bulkImportSection" style="display:none;" class="space-y-8">
+            <div class="bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-outline-variant" id="pasteZone">
+                <h3 class="text-xl font-bold text-primary flex items-center gap-2 mb-2">
+                    <i class="bi bi-body-text"></i> Smart Text Reader
+                </h3>
+                <p class="text-sm text-on-surface-variant mb-4">Paste the block of unstructured text straight from your Word Document into the text box below. The smart reader will attempt to split them into separate students.</p>
+                <div class="bg-primary/10 border border-primary/30 rounded-lg p-4 mb-6">
+                    <p class="text-xs text-on-surface-variant mb-3"><strong>📋 How to use the Conversion Prompt:</strong></p>
+                    <ol class="text-xs text-on-surface-variant list-decimal list-inside space-y-1 mb-3">
+                        <li>Click the <strong>"Copy Prompt"</strong> button below</li>
+                        <li>Go to your AI assistant (ChatGPT, Claude, etc.)</li>
+                        <li>Paste the prompt into the AI chat</li>
+                        <li>Attach or paste your raw report document</li>
+                        <li>The AI will convert it to the proper format</li>
+                        <li>Copy the AI's output and paste it above</li>
+                    </ol>
+                    <button type="button" class="text-xs px-3 py-2 bg-primary text-white rounded-md hover:bg-primary-container transition-all font-bold" onclick="copyConversionPrompt()">
+                        <i class="bi bi-clipboard-check"></i> Copy Conversion Prompt
+                    </button>
+                </div>
+                <textarea id="bulkPasteInput" class="w-full h-80 bg-surface-container p-4 rounded-lg font-mono text-xs border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary mb-6 scrollable" placeholder="Paste unstructured text here..."></textarea>
+                <div class="flex justify-end gap-3 border-t border-outline-variant/30 pt-6">
+                    <button type="button" class="px-6 py-3 bg-surface-container text-on-surface font-bold rounded-lg hover:bg-surface-dim transition-all text-sm" onclick="document.getElementById('bulkPasteInput').value=''">Clear Box</button>
+                    <button type="button" class="px-8 py-3 bg-primary text-white font-bold rounded-lg shadow-md hover:bg-primary-container transition-all flex items-center gap-2 text-sm uppercase tracking-wider" onclick="processSmartText()">
+                        <i class="bi bi-magic"></i> Extract Students
+                    </button>
+                </div>
+            </div>
+            
+            <div id="bulkPreviewContainer" style="display:none;" class="bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-4">
+                <div class="flex justify-between items-center flex-wrap gap-4">
+                    <h3 class="text-lg font-bold text-primary flex items-center gap-2"><i class="bi bi-list-task"></i> Extracted Students (<span id="bulkCount">0</span>)</h3>
+                    <button type="button" id="btnStartBulkUpload" onclick="startBulkUpload()" class="px-6 py-3 bg-primary text-white text-sm font-bold rounded-lg shadow-md hover:bg-primary-container transition-all">
+                        <i class="bi bi-send-fill mr-2"></i>Start Upload Queue
+                    </button>
+                </div>
+                <div class="overflow-x-auto rounded-lg border border-outline-variant/30">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-surface-container-low text-on-surface-variant text-xs uppercase">
+                            <tr>
+                                <th class="p-4 w-10 text-center">#</th>
+                                <th class="p-4 w-32">Status</th>
+                                <th class="p-4">Student Name</th>
+                                <th class="p-4">College</th>
+                                <th class="p-4">Course & Year</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bulkPreviewBody" class="divide-y divide-outline-variant/20 bg-surface">
+                            <!-- rows dynamically injected -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        </div>
+      </form>
+
+
+
+      <footer class="mt-16 text-center text-on-secondary-fixed-variant/40 text-xs">
+        <p>© 2024 The Editorial Archive. Confidential Academic Document.</p>
+      </footer>
+    </main>
+  </div>
+
+  <!-- UI Interaction Scripts -->
+  <script>
+    function setStatus(val, btn) {
+      document.getElementById('stoppedWithdrawDropout').value = val;
+      const group = document.getElementById('statusButtonGroup').querySelectorAll('.status-btn');
+      group.forEach(b => {
+        b.classList.remove('bg-[#c8e6c9]', 'text-green-700', 'font-semibold');
+        b.classList.add('bg-transparent', 'text-on-surface-variant');
+      });
+      btn.classList.add('bg-[#c8e6c9]', 'text-green-700', 'font-semibold');
+      btn.classList.remove('bg-transparent', 'text-on-surface-variant');
+    }
+
+    function setResult(val, btn) {
+      document.getElementById('failedPassed').value = val;
+      const group = document.getElementById('resultButtonGroup').querySelectorAll('.result-btn');
+
+      // Reset all
+      group.forEach(b => {
+        b.classList.remove('bg-error', 'text-white', 'bg-[#1a237e]');
+        b.classList.add('bg-white', 'text-on-surface-variant');
+      });
+
+      // Style active
+      if (val === 'FAILED') {
+        btn.classList.add('bg-error', 'text-white');
+        btn.classList.remove('bg-white', 'text-on-surface-variant');
+      } else if (val === 'PASSED') {
+        btn.classList.add('bg-[#1a237e]', 'text-white');
+        btn.classList.remove('bg-white', 'text-on-surface-variant');
+      }
+    }
+
+    // Override the standard update edit bindings to visually click the visual buttons
+    const originalShowMessage = window.showMessage; // will hook later if needed
+  </script>
+
+  <!-- Core Application Logic -->
+  <script src="script.js"></script>
+
+  <!-- UI State Hook for Edit populating -->
+  <script>
+    // When editStudent is done loading Data, it calls original but we need to visually update the toggles!
+    // I'll patch the DOM element setters for the hidden inputs to trigger visual updates
+
+    const originalFailedPassedSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+
+    const updateVisualToggles = () => {
+      const fp = document.getElementById('failedPassed').value;
+      const stat = document.getElementById('stoppedWithdrawDropout').value;
+
+      if (fp === 'FAILED' || fp === 'PASSED') {
+        const btns = document.getElementById('resultButtonGroup').querySelectorAll('.result-btn');
+        btns.forEach(b => {
+          if (b.innerText.toUpperCase().includes(fp)) setResult(fp, b);
+        });
+      } else {
+        // Reset UI if empty
+        document.getElementById('resultButtonGroup').querySelectorAll('.result-btn').forEach(b => {
+          b.classList.remove('bg-error', 'text-white', 'bg-[#1a237e]');
+          b.classList.add('bg-white', 'text-on-surface-variant');
+        });
+      }
+
+      if (stat) {
+        const statBtns = document.getElementById('statusButtonGroup').querySelectorAll('.status-btn');
+        statBtns.forEach(b => {
+          if (b.innerText.toUpperCase() === stat.toUpperCase()) setStatus(stat, b);
+        });
+      } else {
+        document.getElementById('statusButtonGroup').querySelectorAll('.status-btn').forEach(b => {
+          b.classList.remove('bg-[#c8e6c9]', 'text-green-700', 'font-semibold');
+          b.classList.add('bg-transparent', 'text-on-surface-variant');
+        });
+      }
+    }
+
+    // Quick observer on the form reset
+    document.getElementById('studentForm').addEventListener('reset', () => {
+      setTimeout(updateVisualToggles, 10);
+    });
+
+    // Hook for Edit form population
+    const oldEdit = editStudent;
+    editStudent = async function (sheetName) {
+      await oldEdit(sheetName);
+      updateVisualToggles();
+    }
+
+    // Auto-expand textareas on input
+    function autoResizeTextarea(textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, 500) + 'px';
+    }
+
+    // Initialize auto-resize for all textarea[data-autoresize]
+    document.querySelectorAll('textarea[data-autoresize]').forEach(textarea => {
+      textarea.addEventListener('input', function() {
+        autoResizeTextarea(this);
+      });
+      textarea.addEventListener('change', function() {
+        autoResizeTextarea(this);
+      });
+      // Resize on page load if there's content
+      if (textarea.value) {
+        autoResizeTextarea(textarea);
+      }
+    });
+
+    // Initialize scrollable inputs
+    document.querySelectorAll('input[data-scrollable]').forEach(input => {
+      input.style.overflow = 'auto';
+      
+      // Keep cursor visible when scrolling
+      input.addEventListener('keydown', function(e) {
+        // Allow arrow keys to work naturally for scrolling
+        setTimeout(() => {
+          // Scroll to show the end of the text when typing
+          this.style.textIndent = '0';
+          if (this.scrollWidth > this.clientWidth) {
+            this.scrollLeft = this.scrollWidth;
+          }
+        }, 0);
+      });
+
+      // Handle paste events to scroll to end
+      input.addEventListener('paste', function() {
+        setTimeout(() => {
+          if (this.scrollWidth > this.clientWidth) {
+            this.scrollLeft = this.scrollWidth;
+          }
+        }, 0);
+      });
+    });
+  </script>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed bottom-6 right-6 z-[9999] flex flex-col gap-4 pointer-events-none"></div>
+
+</body>
+
+</html>

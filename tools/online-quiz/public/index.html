@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Online Quiz System</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="entry-container">
+    <div class="entry-card">
+      <div class="entry-header">
+        <span class="logo-icon">📝</span>
+        <h1>Online Quiz System</h1>
+        <p>Create, share, and take quizzes with ease</p>
+      </div>
+
+      <!-- Tabs: Teacher / Student -->
+      <div class="entry-tabs">
+        <button class="entry-tab active" onclick="switchTab('teacher')">👨‍🏫 Teacher</button>
+        <button class="entry-tab" onclick="switchTab('student')">👨‍🎓 Student</button>
+      </div>
+
+      <div id="alert-container"></div>
+
+      <!-- Teacher Login Form -->
+      <form id="teacher-form" class="entry-form active" onsubmit="handleTeacherLogin(event)">
+        <div class="form-group">
+          <label for="teacher-username">Username</label>
+          <input type="text" id="teacher-username" class="form-control" placeholder="e.g., user1" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="teacher-password">Password</label>
+          <input type="password" id="teacher-password" class="form-control" placeholder="e.g., account1" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="teacher-login-btn">
+          🔐 Login as Teacher
+        </button>
+        <p class="form-hint mt-2 text-center" style="color: var(--text-muted); text-align: center;">
+          Pre-defined accounts: user1/account1 ... user10/account10
+        </p>
+      </form>
+
+      <!-- Student Join Form -->
+      <form id="student-form" class="entry-form" onsubmit="handleStudentJoin(event)">
+        <div class="form-group">
+          <label for="student-name">Your Name</label>
+          <input type="text" id="student-name" class="form-control" placeholder="Enter your full name" required>
+        </div>
+        <div class="form-group">
+          <label for="access-code">Quiz Access Code</label>
+          <input type="text" id="access-code" class="form-control" placeholder="Enter 8-character code" required maxlength="8" style="text-transform: uppercase; letter-spacing: 2px; font-weight: 700;">
+        </div>
+        <button type="submit" class="btn btn-accent btn-block btn-lg" id="student-join-btn">
+          🚀 Join Quiz
+        </button>
+      </form>
+
+      <div class="entry-back">
+        <a href="/">← Back to Home</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script>
+    // Tab switching
+    function switchTab(tab) {
+      document.querySelectorAll('.entry-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.entry-form').forEach(f => f.classList.remove('active'));
+      document.getElementById('alert-container').innerHTML = '';
+
+      if (tab === 'teacher') {
+        document.querySelectorAll('.entry-tab')[0].classList.add('active');
+        document.getElementById('teacher-form').classList.add('active');
+      } else {
+        document.querySelectorAll('.entry-tab')[1].classList.add('active');
+        document.getElementById('student-form').classList.add('active');
+      }
+    }
+
+    // Teacher login
+    async function handleTeacherLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById('teacher-username').value.trim();
+      const password = document.getElementById('teacher-password').value;
+      const btn = document.getElementById('teacher-login-btn');
+
+      btn.disabled = true;
+      btn.textContent = 'Logging in...';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error);
+
+        if (data.role === 'teacher') {
+          localStorage.setItem('teacher', JSON.stringify(data.teacher));
+          window.location.href = '/teacher';
+        }
+      } catch (err) {
+        showAlert(err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔐 Login as Teacher';
+      }
+    }
+
+    // Student join
+    async function handleStudentJoin(e) {
+      e.preventDefault();
+      const name = document.getElementById('student-name').value.trim();
+      const code = document.getElementById('access-code').value.trim().toUpperCase();
+      const btn = document.getElementById('student-join-btn');
+
+      btn.disabled = true;
+      btn.textContent = 'Joining...';
+
+      try {
+        const res = await fetch('/api/student/join', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, access_code: code })
+        });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error);
+
+        // Store in sessionStorage for quiz page
+        sessionStorage.setItem('student', JSON.stringify(data.student));
+        sessionStorage.setItem('quiz', JSON.stringify(data.quiz));
+        sessionStorage.setItem('questions', JSON.stringify(data.questions));
+
+        window.location.href = '/student/quiz';
+      } catch (err) {
+        showAlert(err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🚀 Join Quiz';
+      }
+    }
+
+    // Alert helper
+    function showAlert(message, type) {
+      const container = document.getElementById('alert-container');
+      container.innerHTML = `<div class="alert alert-${type}">${escapeHtml(message)}</div>`;
+      setTimeout(() => container.innerHTML = '', 5000);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Auto-uppercase access code
+    document.getElementById('access-code').addEventListener('input', function() {
+      this.value = this.value.toUpperCase();
+    });
+
+    // Check if teacher already logged in
+    const teacher = JSON.parse(localStorage.getItem('teacher') || 'null');
+    if (teacher) {
+      window.location.href = '/teacher';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scheduler</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Global Loading Overlay -->
+    <div id="global-loader" style="display: none;">
+        <div class="loader-content">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p id="global-loader-text">Processing...</p>
+        </div>
+    </div>
+
+    <div class="tool-container">
+        <header class="tool-header" style="position: relative;">
+            <a href="../../index.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Portfolio</a>
+            <h1><i class="fas fa-calendar-alt"></i>Scheduler</h1>
+        </header>
+
+        <main class="tool-content">
+            <!-- Client Booking View (Only View Now) -->
+            <div id="view-client" class="view active">
+                <div class="section-box">
+                    <h2><i class="fas fa-calendar-check"></i> Available Slots</h2>
+                    <div class="form-group">
+                        <label for="date-dropdown">Select Date:</label>
+                        <select id="date-dropdown"></select>
+                    </div>
+                    <div id="schedule-container">
+                        <div class="empty-state">
+                            <i class="fas fa-clock"></i>
+<p><strong>ℹ️ Using local data:</strong> CORS error from file:// origin. Serve via http://localhost:8000 or deploy GAS properly. Add sample slots to test: Edit localStorage or Sheet when served.</p>
+                        </div>
+                    </div>
+                    <div id="booking-form" class="section-box" style="display:none;">
+                        <h3>Book Selected Slot</h3>
+                        <div class="form-group">
+                            <label>Your Name</label>
+                            <input type="text" id="client-name" placeholder="Enter your full name">
+                        </div>
+                        <div id="selected-slot-display" class="selected-slot-display"></div>
+                        <button class="action-btn btn-primary-full" onclick="submitBooking()">
+                            <i class="fas fa-check"></i> Confirm Schedule
+                        </button>
+                    </div>
+                    <div id="confirmation" class="section-box" style="display:none;text-align:center;">
+                        <i class="fas fa-check-circle" style="font-size:3rem;color:#22c55e;"></i>
+                        <h3>Schedule Confirmed!</h3>
+                        <p id="confirm-msg"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Login View -->
+            <div id="view-admin-login" class="view">
+                <div class="auth-card">
+                    <h2><i class="fas fa-lock"></i> Admin Access</h2>
+                    <div class="form-group">
+                        <input type="password" id="admin-pwd" placeholder="Enter admin password">
+                        <div id="login-error" class="error-msg" style="display:none;">Incorrect password.</div>
+                    </div>
+                    <button class="action-btn btn-primary-full" onclick="loginAdmin()">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                </div>
+            </div>
+
+            <!-- Admin Panel View -->
+            <div id="view-admin-panel" class="view">
+            
+                <div class="section-box" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 25px;">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <h2 style="margin: 0; font-size: 1.2rem;"><i class="fas fa-link"></i> Student Access Link</h2>
+                        <p style="margin: 0; font-size: 0.85rem; color: rgba(255,255,255,0.6);">This is the link you give out to students.</p>
+                    </div>
+                    <button class="action-btn" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;" onclick="navigator.clipboard.writeText(window.location.href); alert('Student link copied!');">
+                        <i class="fas fa-copy"></i> Copy Link
+                    </button>
+                </div>
+
+                <div class="section-box">
+                    <h2><i class="fas fa-cogs"></i> Schedule Generator</h2>
+                    <p style="margin-bottom: 20px; color: rgba(255,255,255,0.7);">Generate multiple time slots at once. This adds them to the database.</p>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" id="admin-date">
+                        </div>
+                        <div class="form-group">
+                            <label>Interval</label>
+                            <select id="admin-interval">
+                                <option value="15">Every 15 mins</option>
+                                <option value="30" selected>Every 30 mins</option>
+                                <option value="60">Every 1 hour</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div class="form-group">
+                            <label>Start Time</label>
+                            <div style="display: flex; gap: 5px;">
+                                <input type="text" id="admin-start-time-text" placeholder="8:00" style="flex: 2;">
+                                <select id="admin-start-time-ampm" style="flex: 1;">
+                                    <option value="AM">AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>End Time</label>
+                            <div style="display: flex; gap: 5px;">
+                                <input type="text" id="admin-end-time-text" placeholder="10:00" style="flex: 2;">
+                                <select id="admin-end-time-ampm" style="flex: 1;">
+                                    <option value="AM">AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="action-btn btn-primary-full" onclick="generateAndSaveSlots()">
+                        <i class="fas fa-magic"></i> Generate & Save Schedule
+                    </button>
+
+                    <div id="admin-generate-msg" style="display:none; text-align:center; padding: 10px; margin-top: 15px; border-radius: 8px;"></div>
+                </div>
+
+                <div class="section-box">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h3 style="margin-bottom: 4px;"><i class="fas fa-broom"></i> Auto-Remove Expired Slots</h3>
+                            <p style="color: rgba(255,255,255,0.5); font-size: 0.85rem;">Automatically removes slots once their end time has passed.</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="auto-cleanup-toggle" onchange="toggleAutoCleanup()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="section-box">
+                    <h3><i class="fas fa-list"></i> Current Schedule Preview (Read Only)</h3>
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <label>Filter by Date:</label>
+                        <select id="admin-preview-date-dropdown"></select>
+                    </div>
+                    <ul id="slot-list">
+                        <!-- Admin slot preview list populated here -->
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+

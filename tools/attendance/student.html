@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Student Attendance</title>
+    <link rel="stylesheet" href="attendance.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+      #map { height: 260px; border-radius:8px; overflow:hidden; margin-top:12px; }
+      #coords { color:#cbd5e1; font-size:0.9rem; }
+      #distance { color:#cbd5e1; font-size:0.9rem; }
+    </style>
+</head>
+<body>
+<div class="tool-container">
+  <a href="attendance.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back</a>
+
+  <div class="tool-header">
+    <h1><i class="fas fa-user-check"></i> Student Check-in</h1>
+    <p>Open on your phone, enter full name, submit.</p>
+  </div>
+
+  <div style="max-width:520px;margin:0 auto;text-align:left;">
+    <label for="fullName" style="display:block;margin-bottom:8px;color:#b0b0b0;">Full name</label>
+    <input id="fullName" type="text" placeholder="e.g. Gonzalez, Juan M" style="width:100%;padding:12px;border-radius:8px;border:1px solid #333355;margin-bottom:12px;background:#16213e;color:#fff;">
+    <button id="submitBtn" class="download-file-btn" style="width:100%;">Submit Attendance</button>
+
+    <div id="message" style="margin-top:12px;color:#ffb3b3;"></div>
+
+    <div id="mapContainer" style="max-width:520px;margin-top:6px;">
+      <div id="map"></div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+        <div id="coords" style="flex:1">Lat: --, Lon: --</div>
+        <div id="distance">Distance: --</div>
+        <button id="locateBtn" class="action-btn upload-btn" style="padding:6px 10px;">Locate Me</button>
+      </div>
+    </div>
+
+    <!-- per-device backend URL input removed -->
+
+    <p style="margin-top:16px;color:#9aa0b4;font-size:0.9rem;">Your device will be blocked for 1 hour after a successful submission.</p>
+  </div>
+  </div>
+</div>
+
+<!-- DESKTOP PC BLOCKER OVERLAY -->
+<div id="desktopBlocker" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0f1720; z-index:9999; flex-direction:column; align-items:center; justify-content:center; color:#fff; text-align:center; padding:20px;">
+  <i class="fas fa-desktop" style="font-size: 5rem; color: #ff8a9e; margin-bottom: 20px;"></i>
+  <h1 style="color: #ff8a9e; margin-bottom: 10px;">Mobile Devices Only</h1>
+  <p style="font-size: 1.2rem; color: #cbd5e1; max-width: 400px; line-height: 1.5;">This attendance system is restricted to mobile phones. Please scan the QR code or open the link on your mobile device to check in.</p>
+</div>
+
+<!-- COOLDOWN / SUCCESS OVERLAY -->
+<div id="cooldownOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#16213e; z-index:9998; flex-direction:column; align-items:center; justify-content:center; color:#fff; text-align:center; padding:20px;">
+  <i class="fas fa-check-circle" style="font-size: 6rem; color: #5dde82; margin-bottom: 20px;"></i>
+  <h1 style="color: #5dde82; margin-bottom: 15px; font-size: 2.2rem;">Attendance Confirmed</h1>
+  <h2 id="cooldownName" style="color: #fff; margin-bottom: 30px; font-weight: bold; font-size: 1.8rem;"></h2>
+  <div style="background: rgba(255, 138, 158, 0.1); border: 1px solid #ff8a9e; padding: 15px; border-radius: 8px; max-width: 350px;">
+    <p style="color: #ff8a9e; margin: 0; font-weight: bold;"><i class="fas fa-lock"></i> Device Blocked</p>
+    <p style="color: #cbd5e1; font-size: 0.95rem; margin-top: 5px; margin-bottom:0;">You cannot submit another check-in from this device for 1 hour.</p>
+    <p id="cooldownTimer" style="color: #ff8a9e; font-family: monospace; font-size: 1.1rem; margin-top: 10px; margin-bottom:0; font-weight:bold;"></p>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="student.js"></script>
+</body>
+</html>

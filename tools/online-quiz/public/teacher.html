@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Dashboard - Online Quiz System</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <div class="teacher-layout">
+    <!-- Nav -->
+    <nav class="teacher-nav">
+      <a href="/" class="nav-brand"><span>📝</span> Quiz System</a>
+      <div class="nav-right">
+        <div class="nav-user">Welcome, <strong id="teacher-name"></strong></div>
+        <button class="btn btn-outline btn-sm" onclick="handleLogout()">Logout</button>
+      </div>
+    </nav>
+
+    <div class="teacher-content">
+      <!-- ==================== DASHBOARD VIEW ==================== -->
+      <div id="view-dashboard">
+        <div class="dashboard-header">
+          <h1>📊 Dashboard</h1>
+          <button class="btn btn-gradient" onclick="showView('create')">+ Create Quiz</button>
+        </div>
+
+        <div class="dashboard-stats" id="dashboard-stats"></div>
+
+        <h2 class="mb-2">Your Quizzes</h2>
+        <div id="quiz-list" class="quiz-list"></div>
+      </div>
+
+      <!-- ==================== CREATE QUIZ VIEW ==================== -->
+      <div id="view-create" class="hidden">
+        <div class="create-quiz-container">
+          <div class="flex-between mb-3">
+            <h1>📝 Create New Quiz</h1>
+            <button class="btn btn-outline" onclick="showView('dashboard')">← Back</button>
+          </div>
+
+          <div id="create-alert"></div>
+
+          <!-- Quiz Info -->
+          <div class="card mb-3">
+            <div class="card-header"><h3>Quiz Information</h3></div>
+            <div class="form-group">
+              <label for="quiz-title">Quiz Title *</label>
+              <input type="text" id="quiz-title" class="form-control" placeholder="e.g., Chapter 5 - Biology Test" required>
+            </div>
+            <div class="form-group">
+              <label for="quiz-description">Description (optional)</label>
+              <textarea id="quiz-description" class="form-control" placeholder="Brief description..." rows="2"></textarea>
+            </div>
+          </div>
+
+          <!-- Quiz Settings -->
+          <div class="card mb-3">
+            <div class="card-header"><h3>Quiz Settings</h3></div>
+            <div class="settings-grid">
+              <div class="setting-item">
+                <span class="setting-label">Show scores to students</span>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="setting-show-scores" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="setting-item">
+                <span class="setting-label">Display mode</span>
+                <select id="setting-display-mode" class="form-select" style="width: auto; min-width: 140px;">
+                  <option value="scroll">Scroll (all at once)</option>
+                  <option value="one_by_one">One by one</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Questions -->
+          <div class="flex-between mb-2">
+            <h2>Questions</h2>
+            <div class="flex gap-1 flex-wrap">
+              <button class="btn btn-primary btn-sm" onclick="addQuestion('identification')">+ Identification</button>
+              <button class="btn btn-accent btn-sm" onclick="addQuestion('multiple_choice')">+ Multiple Choice</button>
+              <button class="btn btn-warning btn-sm" onclick="addQuestion('true_false')">+ True/False</button>
+            </div>
+          </div>
+
+          <div id="questions-container">
+            <div class="empty-state" id="no-questions">
+              <div class="empty-icon">❓</div>
+              <h3>No questions added yet</h3>
+              <p>Click the buttons above to add questions.</p>
+            </div>
+          </div>
+
+          <div class="mt-3 text-center">
+            <button class="btn btn-gradient btn-lg" id="submit-quiz-btn" onclick="submitQuiz()">✅ Create Quiz</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== MANAGE QUIZ VIEW ==================== -->
+      <div id="view-manage" class="hidden">
+        <div class="flex-between mb-3">
+          <h1 id="manage-quiz-title">📋 Manage Quiz</h1>
+          <button class="btn btn-outline" onclick="showView('dashboard')">← Back</button>
+        </div>
+
+        <div class="card mb-3">
+          <div class="flex-between flex-wrap gap-1">
+            <div>
+              <p>Access Code: <span class="access-code-display" id="manage-access-code"></span>
+                <button class="btn btn-sm btn-outline ml-1" onclick="copyCode()" style="margin-left:8px;">📋 Copy</button>
+              </p>
+            </div>
+            <div class="flex gap-1 flex-wrap">
+              <button class="btn btn-sm btn-primary" id="manage-toggle-btn" onclick="toggleManageQuiz()">⏸ Disable</button>
+              <button class="btn btn-sm btn-danger" onclick="deleteManageQuiz()">🗑 Delete</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manage Tabs -->
+        <div class="manage-tabs">
+          <button class="manage-tab active" onclick="switchManageTab('monitor')">🔴 Live Monitor</button>
+          <button class="manage-tab" onclick="switchManageTab('edit')">✏️ Edit Quiz</button>
+          <button class="manage-tab" onclick="switchManageTab('results')">📊 Results</button>
+        </div>
+
+        <!-- Monitor Panel -->
+        <div id="panel-monitor" class="manage-panel active">
+          <div class="flex-between mb-2">
+            <h3>Live Students</h3>
+            <span id="monitor-count" class="badge badge-info">0 active</span>
+          </div>
+          <div id="monitor-grid" class="monitor-grid">
+            <div class="empty-state">
+              <div class="empty-icon">👀</div>
+              <h3>No students yet</h3>
+              <p>Students will appear here when they join.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Panel -->
+        <div id="panel-edit" class="manage-panel">
+          <div class="card mb-3">
+            <div class="card-header"><h3>Quiz Settings</h3></div>
+            <div class="form-group">
+              <label>Title</label>
+              <input type="text" id="edit-title" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <textarea id="edit-description" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Access Code</label>
+              <input type="text" id="edit-access-code" class="form-control" maxlength="8" style="text-transform:uppercase;letter-spacing:2px;font-weight:700;">
+            </div>
+            <div class="settings-grid mt-2">
+              <div class="setting-item">
+                <span class="setting-label">Show scores</span>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="edit-show-scores">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="setting-item">
+                <span class="setting-label">Display mode</span>
+                <select id="edit-display-mode" class="form-select" style="width:auto;min-width:140px;">
+                  <option value="scroll">Scroll</option>
+                  <option value="one_by_one">One by one</option>
+                </select>
+              </div>
+            </div>
+            <div class="mt-2">
+              <button class="btn btn-primary" onclick="saveQuizSettings()">💾 Save Settings</button>
+            </div>
+          </div>
+
+          <!-- Edit Questions -->
+          <div class="flex-between mb-2">
+            <h3>Questions</h3>
+            <div class="flex gap-1 flex-wrap">
+              <button class="btn btn-primary btn-sm" onclick="addEditQuestion('identification')">+ Identification</button>
+              <button class="btn btn-accent btn-sm" onclick="addEditQuestion('multiple_choice')">+ Multiple Choice</button>
+              <button class="btn btn-warning btn-sm" onclick="addEditQuestion('true_false')">+ True/False</button>
+            </div>
+          </div>
+          <div id="edit-questions-container"></div>
+          <div class="mt-2 text-center">
+            <button class="btn btn-gradient" onclick="saveQuizQuestions()">💾 Save Questions</button>
+          </div>
+        </div>
+
+        <!-- Results Panel -->
+        <div id="panel-results" class="manage-panel">
+          <div class="flex-between mb-2">
+            <h3>Student Results</h3>
+            <button class="btn btn-success btn-sm" onclick="exportResults()">📥 Export Excel</button>
+          </div>
+          <div id="results-container"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div id="success-modal" class="modal-overlay">
+    <div class="modal">
+      <h2>🎉 Quiz Created!</h2>
+      <p class="mb-2">Share this access code with your students:</p>
+      <div class="text-center mb-2">
+        <span class="access-code-display large" id="created-access-code"></span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="copyCreatedCode()">📋 Copy Code</button>
+        <button class="btn btn-accent" id="manage-created-btn">📊 Manage Quiz</button>
+        <button class="btn btn-outline" onclick="closeModal(); showView('dashboard');">← Dashboard</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script>
+    // ============================================================
+    // State
+    // ============================================================
+    const teacher = JSON.parse(localStorage.getItem('teacher') || 'null');
+    if (!teacher) window.location.href = '/';
+
+    document.getElementById('teacher-name').textContent = teacher.username;
+
+    let currentManageQuizId = null;
+    let currentManageQuiz = null;
+    let questionCounter = 0;
+    let editQuestionCounter = 0;
+    const socket = io();
+
+    // ============================================================
+    // View Management
+    // ============================================================
+    function showView(view) {
+      document.querySelectorAll('[id^="view-"]').forEach(v => v.classList.add('hidden'));
+      document.getElementById(`view-${view}`).classList.remove('hidden');
+
+      if (view === 'dashboard') loadDashboard();
+      if (view === 'manage' && currentManageQuizId) loadManageQuiz(currentManageQuizId);
+    }
+
+    // ============================================================
+    // Dashboard
+    // ============================================================
+    async function loadDashboard() {
+      try {
+        const res = await fetch(`/api/teacher/${teacher.id}/quizzes`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        const quizzes = data.quizzes;
+        const totalStudents = quizzes.reduce((s, q) => s + q.student_count, 0);
+        const activeStudents = quizzes.reduce((s, q) => s + q.active_students, 0);
+        const activeQuizzes = quizzes.filter(q => q.is_active).length;
+
+        document.getElementById('dashboard-stats').innerHTML = `
+          <div class="stat-card"><div class="stat-icon">📝</div><div class="stat-value">${quizzes.length}</div><div class="stat-label">Total Quizzes</div></div>
+          <div class="stat-card"><div class="stat-icon">🟢</div><div class="stat-value">${activeQuizzes}</div><div class="stat-label">Active Quizzes</div></div>
+          <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value">${totalStudents}</div><div class="stat-label">Total Students</div></div>
+          <div class="stat-card"><div class="stat-icon">⚡</div><div class="stat-value">${activeStudents}</div><div class="stat-label">Taking Now</div></div>
+        `;
+
+        if (quizzes.length === 0) {
+          document.getElementById('quiz-list').innerHTML = `
+            <div class="empty-state"><div class="empty-icon">📋</div><h3>No quizzes yet</h3><p>Create your first quiz to get started!</p></div>
+          `;
+          return;
+        }
+
+        document.getElementById('quiz-list').innerHTML = quizzes.map(q => `
+          <div class="quiz-item">
+            <div class="quiz-item-info">
+              <h3>${escapeHtml(q.title)}</h3>
+              <div class="quiz-item-meta">
+                <span>🔑 <strong>${q.access_code}</strong></span>
+                <span>❓ ${q.question_count} questions</span>
+                <span>👥 ${q.student_count} students</span>
+                <span>⚡ ${q.active_students} active</span>
+                <span>${q.is_active ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Disabled</span>'}</span>
+              </div>
+            </div>
+            <div class="quiz-item-actions">
+              <button class="btn btn-primary btn-sm" onclick="openManageQuiz(${q.id})">📊 Manage</button>
+              <button class="btn ${q.is_active ? 'btn-warning' : 'btn-success'} btn-sm" onclick="toggleQuiz(${q.id})">${q.is_active ? '⏸ Disable' : '▶ Enable'}</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteQuiz(${q.id})">🗑</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function toggleQuiz(id) {
+      try {
+        const res = await fetch(`/api/quiz/${id}/toggle`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ teacher_id: teacher.id })
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast('Quiz status updated!', 'success');
+        loadDashboard();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function deleteQuiz(id) {
+      if (!confirm('Delete this quiz? This cannot be undone.')) return;
+      try {
+        const res = await fetch(`/api/quiz/${id}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ teacher_id: teacher.id })
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast('Quiz deleted!', 'success');
+        loadDashboard();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    // ============================================================
+    // Create Quiz - Question Builders
+    // ============================================================
+    function addQuestion(type) {
+      document.getElementById('no-questions').style.display = 'none';
+      const container = document.getElementById('questions-container');
+      const qid = ++questionCounter;
+      const div = document.createElement('div');
+      div.className = 'question-builder';
+      div.dataset.qid = qid;
+      div.dataset.type = type;
+      div.innerHTML = buildQuestionHTML(qid, type, 'create');
+      container.appendChild(div);
+    }
+
+    function buildQuestionHTML(qid, type, prefix, data = null) {
+      const typeLabels = { identification: '📝 Identification', multiple_choice: '☑️ Multiple Choice', true_false: '✅ True/False' };
+      let html = `
+        <div class="flex-between mb-1">
+          <span class="question-number">${typeLabels[type]}</span>
+          <button class="remove-question" onclick="this.closest('.question-builder').remove()">×</button>
+        </div>
+        <div class="form-group">
+          <label>Question Text *</label>
+          <input type="text" class="form-control q-text" placeholder="Enter your question..." value="${escapeAttr(data?.question_text || '')}" required>
+        </div>
+        <div class="form-group">
+          <label>Points</label>
+          <input type="number" class="form-control q-points" value="${data?.points || 1}" min="1" max="100" style="width:100px;">
+        </div>
+      `;
+
+      if (type === 'identification') {
+        const answers = data ? JSON.parse(data.correct_answers || '[]') : [''];
+        html += `
+          <div class="form-group">
+            <label>Correct Answers <span class="form-hint">(multiple accepted)</span></label>
+            <div class="answers-list" id="${prefix}-answers-${qid}">
+              ${answers.map((a, i) => `
+                <div class="answer-item">
+                  <input type="text" class="form-control id-answer" placeholder="Correct answer ${i + 1}" value="${escapeAttr(a)}">
+                  <button class="remove-answer" onclick="this.parentElement.remove()">×</button>
+                </div>
+              `).join('')}
+            </div>
+            <button class="btn btn-sm btn-outline mt-1" onclick="addAnswer('${prefix}-answers-${qid}')">+ Add Answer</button>
+          </div>
+        `;
+      } else if (type === 'multiple_choice') {
+        const options = data ? JSON.parse(data.options || '[]') : ['', '', '', ''];
+        const correct = data ? JSON.parse(data.correct_answers || '[]') : [];
+        const correctIdx = correct.length > 0 ? options.indexOf(correct[0]) : -1;
+        html += `
+          <div class="form-group">
+            <label>Options <span class="form-hint">(select ONE correct answer)</span></label>
+            <div class="options-list" id="${prefix}-options-${qid}">
+              ${options.map((o, i) => `
+                <div class="option-item">
+                  <label class="option-correct"><input type="radio" name="${prefix}-mc-${qid}" value="${i}" ${i === correctIdx ? 'checked' : ''}> ✓</label>
+                  <input type="text" class="form-control mc-option" placeholder="Option ${i + 1}" value="${escapeAttr(o)}">
+                  <button class="remove-option" onclick="this.parentElement.remove()">×</button>
+                </div>
+              `).join('')}
+            </div>
+            <button class="btn btn-sm btn-outline mt-1" onclick="addOption('${prefix}-options-${qid}', '${prefix}-mc-${qid}')">+ Add Option</button>
+          </div>
+        `;
+      } else if (type === 'true_false') {
+        const correct = data ? JSON.parse(data.correct_answers || '[]') : [];
+        const val = correct[0] || '';
+        html += `
+          <div class="form-group">
+            <label>Correct Answer</label>
+            <div class="tf-options-create">
+              <label class="tf-option-create"><input type="radio" name="${prefix}-tf-${qid}" value="True" ${val === 'True' ? 'checked' : ''}> True</label>
+              <label class="tf-option-create"><input type="radio" name="${prefix}-tf-${qid}" value="False" ${val === 'False' ? 'checked' : ''}> False</label>
+            </div>
+          </div>
+        `;
+      }
+
+      return html;
+    }
+
+    function addAnswer(containerId) {
+      const container = document.getElementById(containerId);
+      const div = document.createElement('div');
+      div.className = 'answer-item';
+      div.innerHTML = `<input type="text" class="form-control id-answer" placeholder="Correct answer"><button class="remove-answer" onclick="this.parentElement.remove()">×</button>`;
+      container.appendChild(div);
+    }
+
+    function addOption(containerId, radioName) {
+      const container = document.getElementById(containerId);
+      const idx = container.children.length;
+      const div = document.createElement('div');
+      div.className = 'option-item';
+      div.innerHTML = `<label class="option-correct"><input type="radio" name="${radioName}" value="${idx}"> ✓</label><input type="text" class="form-control mc-option" placeholder="Option ${idx + 1}"><button class="remove-option" onclick="this.parentElement.remove()">×</button>`;
+      container.appendChild(div);
+    }
+
+    function collectQuestions(containerId) {
+      const builders = document.querySelectorAll(`#${containerId} .question-builder`);
+      if (builders.length === 0) return [];
+
+      const result = [];
+      for (const builder of builders) {
+        const type = builder.dataset.type;
+        const text = builder.querySelector('.q-text').value.trim();
+        const points = parseInt(builder.querySelector('.q-points').value) || 1;
+
+        if (!text) { showToast('All questions must have text', 'error'); return null; }
+
+        const question = { question_text: text, question_type: type, points, options: [], correct_answers: [] };
+
+        if (type === 'identification') {
+          const inputs = builder.querySelectorAll('.id-answer');
+          const answers = [];
+          inputs.forEach(inp => { if (inp.value.trim()) answers.push(inp.value.trim()); });
+          if (answers.length === 0) { showToast('Identification questions need at least one correct answer', 'error'); return null; }
+          question.correct_answers = answers;
+        } else if (type === 'multiple_choice') {
+          const optInputs = builder.querySelectorAll('.mc-option');
+          const options = [];
+          optInputs.forEach(inp => options.push(inp.value.trim()));
+          const validOpts = options.filter(o => o);
+          if (validOpts.length < 2) { showToast('Multiple choice needs at least 2 options', 'error'); return null; }
+
+          const selected = builder.querySelector('input[type="radio"][name^="create-mc-"]:checked, input[type="radio"][name^="edit-mc-"]:checked');
+          if (!selected) { showToast('Select the correct answer for multiple choice', 'error'); return null; }
+
+          const correctIdx = parseInt(selected.value);
+          if (!options[correctIdx]) { showToast('The selected correct option cannot be empty', 'error'); return null; }
+
+          question.options = options;
+          question.correct_answers = [options[correctIdx]];
+        } else if (type === 'true_false') {
+          const selected = builder.querySelector('input[type="radio"][name^="create-tf-"]:checked, input[type="radio"][name^="edit-tf-"]:checked');
+          if (!selected) { showToast('Select True or False', 'error'); return null; }
+          question.options = ['True', 'False'];
+          question.correct_answers = [selected.value];
+        }
+
+        result.push(question);
+      }
+      return result;
+    }
+
+    async function submitQuiz() {
+      const title = document.getElementById('quiz-title').value.trim();
+      const description = document.getElementById('quiz-description').value.trim();
+      if (!title) { showToast('Enter a quiz title', 'error'); return; }
+
+      const questions = collectQuestions('questions-container');
+      if (!questions) return;
+      if (questions.length === 0) { showToast('Add at least one question', 'error'); return; }
+
+      const settings = {
+        show_scores: document.getElementById('setting-show-scores').checked,
+        display_mode: document.getElementById('setting-display-mode').value
+      };
+
+      const btn = document.getElementById('submit-quiz-btn');
+      btn.disabled = true;
+      btn.textContent = 'Creating...';
+
+      try {
+        const res = await fetch('/api/quiz/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ teacher_id: teacher.id, title, description, questions, settings })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        document.getElementById('created-access-code').textContent = data.accessCode;
+        document.getElementById('manage-created-btn').onclick = () => { closeModal(); openManageQuiz(data.quizId); };
+        document.getElementById('success-modal').classList.add('active');
+
+        // Reset form
+        document.getElementById('quiz-title').value = '';
+        document.getElementById('quiz-description').value = '';
+        document.getElementById('questions-container').innerHTML = '<div class="empty-state" id="no-questions"><div class="empty-icon">❓</div><h3>No questions added yet</h3><p>Click the buttons above to add questions.</p></div>';
+        questionCounter = 0;
+      } catch (err) {
+        showToast('Failed: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '✅ Create Quiz';
+      }
+    }
+
+    // ============================================================
+    // Manage Quiz
+    // ============================================================
+    function openManageQuiz(id) {
+      currentManageQuizId = id;
+      showView('manage');
+    }
+
+    async function loadManageQuiz(id) {
+      try {
+        const res = await fetch(`/api/quiz/${id}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        currentManageQuiz = data.quiz;
+        const questions = data.questions;
+
+        document.getElementById('manage-quiz-title').textContent = '📋 ' + escapeHtml(data.quiz.title);
+        document.getElementById('manage-access-code').textContent = data.quiz.access_code;
+        document.getElementById('manage-toggle-btn').innerHTML = data.quiz.is_active ? '⏸ Disable' : '▶ Enable';
+        document.getElementById('manage-toggle-btn').className = `btn btn-sm ${data.quiz.is_active ? 'btn-warning' : 'btn-success'}`;
+
+        // Edit fields
+        document.getElementById('edit-title').value = data.quiz.title;
+        document.getElementById('edit-description').value = data.quiz.description || '';
+        document.getElementById('edit-access-code').value = data.quiz.access_code;
+        document.getElementById('edit-show-scores').checked = !!data.quiz.show_scores;
+        document.getElementById('edit-display-mode').value = data.quiz.display_mode || 'scroll';
+
+        // Load edit questions
+        const editContainer = document.getElementById('edit-questions-container');
+        editContainer.innerHTML = '';
+        editQuestionCounter = 0;
+        questions.forEach(q => {
+          const qid = ++editQuestionCounter;
+          const div = document.createElement('div');
+          div.className = 'question-builder';
+          div.dataset.qid = qid;
+          div.dataset.type = q.question_type;
+          div.innerHTML = buildQuestionHTML(qid, q.question_type, 'edit', q);
+          editContainer.appendChild(div);
+        });
+
+        // Start monitoring
+        socket.emit('teacher-monitor', id);
+        loadMonitorStudents(id);
+        loadResults(id);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function switchManageTab(tab) {
+      document.querySelectorAll('.manage-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.manage-panel').forEach(p => p.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById(`panel-${tab}`).classList.add('active');
+
+      if (tab === 'results' && currentManageQuizId) loadResults(currentManageQuizId);
+    }
+
+    async function toggleManageQuiz() {
+      if (!currentManageQuizId) return;
+      await toggleQuiz(currentManageQuizId);
+      loadManageQuiz(currentManageQuizId);
+    }
+
+    async function deleteManageQuiz() {
+      if (!currentManageQuizId) return;
+      await deleteQuiz(currentManageQuizId);
+      showView('dashboard');
+    }
+
+    async function saveQuizSettings() {
+      try {
+        const settings = {
+          title: document.getElementById('edit-title').value.trim(),
+          description: document.getElementById('edit-description').value.trim(),
+          access_code: document.getElementById('edit-access-code').value.trim().toUpperCase(),
+          show_scores: document.getElementById('edit-show-scores').checked,
+          display_mode: document.getElementById('edit-display-mode').value
+        };
+        const res = await fetch(`/api/quiz/${currentManageQuizId}/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ teacher_id: teacher.id, settings })
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast('Settings saved!', 'success');
+        loadManageQuiz(currentManageQuizId);
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    function addEditQuestion(type) {
+      const container = document.getElementById('edit-questions-container');
+      const qid = ++editQuestionCounter;
+      const div = document.createElement('div');
+      div.className = 'question-builder';
+      div.dataset.qid = qid;
+      div.dataset.type = type;
+      div.innerHTML = buildQuestionHTML(qid, type, 'edit');
+      container.appendChild(div);
+    }
+
+    async function saveQuizQuestions() {
+      const questions = collectQuestions('edit-questions-container');
+      if (!questions) return;
+      if (questions.length === 0) { showToast('Add at least one question', 'error'); return; }
+
+      try {
+        const res = await fetch(`/api/quiz/${currentManageQuizId}/questions`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ teacher_id: teacher.id, questions })
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast('Questions saved!', 'success');
+        loadManageQuiz(currentManageQuizId);
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    // ============================================================
+    // Live Monitor (Socket.io)
+    // ============================================================
+    const monitorStudents = new Map();
+
+    async function loadMonitorStudents(quizId) {
+      try {
+        const res = await fetch(`/api/quiz/${quizId}/students`);
+        const data = await res.json();
+        if (!res.ok) return;
+        monitorStudents.clear();
+        data.students.forEach(s => {
+          monitorStudents.set(s.id, { studentId: s.id, name: s.name, status: s.status === 'completed' ? 'finished' : s.status });
+        });
+        renderMonitor();
+      } catch (err) { /* ignore */ }
+    }
+
+    socket.on('student-joined', (data) => {
+      monitorStudents.set(data.studentId, { studentId: data.studentId, name: data.studentName, status: 'active' });
+      renderMonitor();
+      showToast(`${data.studentName} joined!`, 'info');
+    });
+
+    socket.on('student-submitted', (data) => {
+      if (monitorStudents.has(data.studentId)) {
+        monitorStudents.get(data.studentId).status = 'finished';
+      } else {
+        monitorStudents.set(data.studentId, { studentId: data.studentId, name: data.studentName, status: 'finished' });
+      }
+      renderMonitor();
+      showToast(`${data.studentName} submitted!`, 'success');
+    });
+
+    socket.on('cheat-alert', (data) => {
+      showToast(`⚠️ ${data.studentName}: ${data.eventType} (${data.cheatCount}/3)`, 'warning');
+    });
+
+    socket.on('student-was-blocked', (data) => {
+      if (monitorStudents.has(data.studentId)) {
+        monitorStudents.get(data.studentId).status = 'blocked';
+      }
+      renderMonitor();
+      showToast(`🚫 ${data.studentName} was blocked!`, 'error');
+    });
+
+    socket.on('student-disconnected', (data) => {
+      if (monitorStudents.has(data.studentId)) {
+        monitorStudents.get(data.studentId).status = 'disconnected';
+      }
+      renderMonitor();
+    });
+
+    socket.on('current-students', (students) => {
+      monitorStudents.clear();
+      students.forEach(s => monitorStudents.set(s.studentId, s));
+      renderMonitor();
+    });
+
+    function renderMonitor() {
+      const grid = document.getElementById('monitor-grid');
+      const students = Array.from(monitorStudents.values());
+      const activeCount = students.filter(s => s.status === 'active').length;
+      document.getElementById('monitor-count').textContent = `${activeCount} active / ${students.length} total`;
+
+      if (students.length === 0) {
+        grid.innerHTML = '<div class="empty-state"><div class="empty-icon">👀</div><h3>No students yet</h3><p>Students will appear here when they join.</p></div>';
+        return;
+      }
+
+      grid.innerHTML = students.map(s => {
+        const icons = { active: '🟢', finished: '✅', blocked: '🚫', disconnected: '⚠️' };
+        return `
+          <div class="monitor-student ${s.status}">
+            <div class="monitor-avatar">${icons[s.status] || '👤'}</div>
+            <div class="monitor-info">
+              <div class="monitor-name">${escapeHtml(s.name)}</div>
+              <div class="monitor-status">${s.status}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ============================================================
+    // Results
+    // ============================================================
+    async function loadResults(quizId) {
+      try {
+        const res = await fetch(`/api/quiz/${quizId}/results`);
+        const data = await res.json();
+        if (!res.ok) return;
+
+        const container = document.getElementById('results-container');
+        const results = data.results;
+
+        if (results.length === 0) {
+          container.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><h3>No results yet</h3><p>Results will appear after students submit.</p></div>';
+          return;
+        }
+
+        let html = '<div class="results-table-wrapper"><table class="results-table"><thead><tr><th>Student</th><th>Status</th><th>Score</th><th>Percentage</th><th>Cheats</th><th>Submitted</th></tr></thead><tbody>';
+
+        results.forEach(s => {
+          const pct = s.total_points > 0 ? ((s.score / s.total_points) * 100).toFixed(1) : 0;
+          const level = pct >= 75 ? 'high' : pct >= 50 ? 'medium' : 'low';
+          const statusBadge = s.status === 'completed' ? '<span class="badge badge-success">Completed</span>' :
+                              s.status === 'blocked' ? '<span class="badge badge-danger">Blocked</span>' :
+                              '<span class="badge badge-warning">Taking</span>';
+          html += `<tr>
+            <td><strong>${escapeHtml(s.name)}</strong></td>
+            <td>${statusBadge}</td>
+            <td>${s.score}/${s.total_points}</td>
+            <td><div>${pct}%</div><div class="score-bar"><div class="score-bar-fill ${level}" style="width:${pct}%"></div></div></td>
+            <td>${s.cheat_count > 0 ? '<span class="badge badge-danger">' + s.cheat_count + '</span>' : '0'}</td>
+            <td>${s.submitted_at ? new Date(s.submitted_at).toLocaleString() : '-'}</td>
+          </tr>`;
+        });
+
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+      } catch (err) { /* ignore */ }
+    }
+
+    function exportResults() {
+      if (!currentManageQuizId) return;
+      window.open(`/api/quiz/${currentManageQuizId}/export`, '_blank');
+    }
+
+    // ============================================================
+    // Utilities
+    // ============================================================
+    function copyCode() {
+      const code = document.getElementById('manage-access-code').textContent;
+      navigator.clipboard.writeText(code).then(() => showToast('Code copied!', 'success'));
+    }
+
+    function copyCreatedCode() {
+      const code = document.getElementById('created-access-code').textContent;
+      navigator.clipboard.writeText(code).then(() => showToast('Code copied!', 'success'));
+    }
+
+    function closeModal() {
+      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('teacher');
+      if (currentManageQuizId) socket.emit('teacher-leave-monitor', currentManageQuizId);
+      window.location.href = '/';
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function escapeAttr(text) {
+      if (!text) return '';
+      return text.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // ============================================================
+    // Init
+    // ============================================================
+    loadDashboard();
+  </script>
+</body>
+</html>

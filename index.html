@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Class — Dashboard</title>
+  <meta name="description"
+    content="A centralized dashboard for managing school tools: attendance, grading, quizzes, scheduling, and more.">
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Dashboard Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+  <!-- ═══════════ THEME TOGGLE (always visible) ═══════════ -->
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode">
+    <i class="fas fa-sun icon-sun"></i>
+    <i class="fas fa-moon icon-moon"></i>
+  </button>
+
+  <!-- ═══════════ ANIMATED BACKGROUND ═══════════ -->
+  <div class="bg-animated">
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+  </div>
+
+  <!-- ═══════════ LOGIN SCREEN ═══════════ -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-particles" id="loginParticles"></div>
+
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="login-logo-icon">🎓</div>
+        <h1>ClassFlow</h1>
+        <p>Your School Workflow, Simplified.</p>
+      </div>
+
+      <div class="login-error" id="loginError"></div>
+
+      <form id="loginForm" autocomplete="on">
+        <div class="form-group">
+          <label class="form-label" for="loginUsername">Username</label>
+          <input class="form-input" type="text" id="loginUsername" placeholder="Enter your username"
+            autocomplete="username" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="loginPassword">Password</label>
+          <input class="form-input" type="password" id="loginPassword" placeholder="Enter your password"
+            autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="login-btn" id="loginBtn">
+          Sign In
+        </button>
+      </form>
+
+      <p style="text-align: center; margin-top: 24px; font-size: 0.78rem; color: var(--text-dim);">
+        Default: <strong style="color: var(--text-secondary);">admin</strong> / <strong
+          style="color: var(--text-secondary);">admin123</strong>
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════ DASHBOARD ═══════════ -->
+  <div class="dashboard" id="dashboard">
+
+    <!-- ── Sidebar ── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🎓</div>
+        <span class="sidebar-brand">ClassFlow</span>
+      </div>
+      <div class="sidebar-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-chevron-left"></i>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav">
+        <!-- Rendered by JS -->
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-item" data-tooltip="Sign Out" onclick="logout()" style="color: var(--danger);">
+          <div class="sidebar-item-icon" style="color: var(--danger);">
+            <i class="fas fa-right-from-bracket"></i>
+          </div>
+          <span class="sidebar-item-text">Sign Out</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mobile sidebar overlay -->
+    <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+    <!-- ── Top Navbar ── -->
+    <header class="navbar" id="navbar">
+      <div class="navbar-left">
+        <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div class="navbar-breadcrumb" id="navBreadcrumb">
+          <span class="navbar-breadcrumb-current">Dashboard</span>
+        </div>
+      </div>
+
+      <div class="navbar-search">
+        <i class="fas fa-magnifying-glass navbar-search-icon"></i>
+        <input type="text" id="navSearch" placeholder="Search tools..." autocomplete="off">
+      </div>
+
+      <div class="navbar-right">
+        <div class="navbar-user">
+          <div class="navbar-avatar" id="navAvatar">AD</div>
+          <div>
+            <div class="navbar-username" id="navUsername">Admin</div>
+            <div class="navbar-role" id="navRole">admin</div>
+          </div>
+        </div>
+        <button class="navbar-btn logout" onclick="logout()" title="Sign out">
+          <i class="fas fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- ── Main Content ── -->
+    <div class="main-content" id="mainContent">
+
+      <!-- Home View -->
+      <div class="home-view" id="homeView">
+        <div class="home-header">
+          <h2 id="homeGreeting">Good morning, Admin</h2>
+          <p>Select a tool from the grid below or use the sidebar to navigate.</p>
+        </div>
+
+        <div class="home-stats">
+          <div class="stat-card">
+            <div class="stat-icon tool-icon-emerald"><i class="fas fa-toolbox"></i></div>
+            <div class="stat-info">
+              <h4>6</h4>
+              <p>Available Tools</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon tool-icon-blue"><i class="fas fa-shield-halved"></i></div>
+            <div class="stat-info">
+              <h4 id="roleDisplay">Admin</h4>
+              <p>Access Level</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon tool-icon-purple"><i class="fas fa-clock"></i></div>
+            <div class="stat-info">
+              <h4 id="sessionTime">Active</h4>
+              <p>Session</p>
+            </div>
+          </div>
+        </div>
+
+        <h3
+          style="font-size: 1rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">
+          <i class="fas fa-grip" style="margin-right: 6px;"></i> All Tools
+        </h3>
+
+        <div class="tools-grid" id="toolsGrid">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Tool View (iframe) -->
+      <div class="tool-view" id="toolView">
+        <div class="tool-iframe-container">
+          <div class="tool-loader" id="toolLoader">
+            <div class="tool-loader-spinner"></div>
+            <p id="toolLoaderText">Loading tool...</p>
+          </div>
+          <iframe class="tool-iframe" id="toolIframe"
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads"
+            title="Tool Content"></iframe>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Dashboard Logic -->
+  <script src="app.js"></script>
+</body>
+
+</html>

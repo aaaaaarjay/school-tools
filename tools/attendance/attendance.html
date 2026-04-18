@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance System</title>
+
+    <link rel="stylesheet" href="attendance.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="tool-container">
+        <a href="../../index.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Portfolio</a>
+
+        <div class="tool-header">
+            <h1><i class="fas fa-calendar-check"></i> Attendance System</h1>
+            <p>Upload Excel • Mark Attendance • Download Updated File</p>
+            <div id="headerControls"
+                style="margin-top:10px;display:flex;align-items:center;gap:15px;justify-content:center;font-size:0.85rem;">
+                <span id="pollStatus" class="poll-status" style="display:flex;align-items:center;gap:6px;">
+                    <span id="pollDot" class="status-dot off"></span>
+                    <span id="pollText" style="color:#9aa0b4;">Auto-poll: off</span>
+                </span>
+                <span id="healthStatus" class="poll-status" style="display:flex;align-items:center;gap:6px;">
+                    <span id="healthDot" class="status-dot off"></span>
+                    <span id="healthText" style="color:#9aa0b4;">Backend: unknown</span>
+                </span>
+            </div>
+            <!-- Hidden debug container in case it's needed for errors -->
+            <div id="backendDebugContainer" style="display:none;">
+                <pre id="backendDebug"> </pre>
+                <button id="copyBackendUrlBtn" style="display:none;">Copy failing script URL</button>
+            </div>
+        </div>
+
+        <!-- BUTTONS -->
+        <div class="main-actions">
+
+            <a href="student_names_template.xlsx" download class="action-btn download-btn"
+                style="text-decoration: none; color: inherit; text-align: center; font-size: 1rem; font-weight: 600; font-family: Arial, Helvetica, sans-serif;">
+                Download Template
+            </a>
+
+            <button class="action-btn upload-btn" onclick="document.getElementById('fileInput').click()">
+                Upload Excel File
+            </button>
+
+            <input type="file" id="fileInput" class="file-input" accept=".xlsx" />
+            <button id="publishRosterBtn" class="action-btn upload-btn" style="display:none;" onclick="publishRoster()">
+                Upload list to Sheets
+            </button>
+            <button class="action-btn" style="background: linear-gradient(135deg, #e94560, #c0392b); color: white;"
+                onclick="resetAllData()">
+                <i class="fas fa-trash-alt"></i> Reset All Data
+            </button>
+        </div>
+
+        <!-- SEARCH -->
+        <div class="search-container" id="searchContainer">
+            <div class="search-input-wrapper">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="studentSearchInput" class="search-input" placeholder="Search student across all sections..." autocomplete="off" />
+                <button id="searchClearBtn" class="search-clear-btn" style="display:none;" title="Clear search">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="searchResults" class="search-results" style="display:none;"></div>
+        </div>
+
+        <!-- CONTENT -->
+        <div id="sectionsContainer"></div>
+
+        <!-- ADMIN LIVE PANEL -->
+        <div id="adminPanel" class="admin-panel">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                <h3 style="margin:0;color:#b0b0b0;">Live Check-ins</h3>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <label style="color:#9aa0b4;">Auto-refresh</label>
+                    <input type="checkbox" id="autoPollCheckbox" checked />
+                    <button id="clearLiveBtn" class="action-btn upload-btn" style="padding:6px 10px;">Clear</button>
+                </div>
+            </div>
+
+            <div id="liveList" class="live-list" style="margin-top:12px;"></div>
+        </div>
+
+        <!-- DOWNLOAD -->
+        <button id="downloadBtn" class="download-file-btn" style="display:none;" onclick="downloadFile()">
+            Download Attendance File
+        </button>
+
+    </div>
+
+    <script src="attendance.js"></script>
+</body>
+
+</html>

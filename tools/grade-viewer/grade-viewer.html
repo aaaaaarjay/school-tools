@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Grade Finder</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a2e;
+            color: #eaeaea;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .tool-container {
+            background-color: #16213e;
+            border: 2px solid #e94560;
+            border-radius: 15px;
+            padding: 30px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 4px 20px rgba(233, 69, 96, 0.3);
+        }
+
+        .tool-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .tool-header h1 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        .tool-header p {
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .card {
+            background-color: #16213e;
+            border: 1px solid #333355;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #667eea;
+    text-decoration: none;
+    font-size: 0.95rem;
+    margin: 0 auto 20px auto;
+    padding: 10px 20px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 25px;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    text-align: center;
+}
+
+.tool-container > .back-btn {
+    display: block;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.back-btn:hover {
+    background: rgba(102, 126, 234, 0.2);
+    transform: translateX(-5px);
+}
+
+        input[type="file"],
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 2px solid #66669f;
+            background-color: #0f3460;
+            color: #fff;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            transition: 0.3s;
+        }
+
+        .btn.primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+        }
+
+        .btn.secondary {
+            background-color: #0f3460;
+            border: 1px solid #333355;
+            color: #fff;
+        }
+
+        .btn.danger {
+            background-color: #e94560;
+            color: #fff;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #333355;
+            line-height: 1.6;
+        }
+
+        .grade-label {
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        @media (max-width: 600px) {
+            .actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="tool-container">
+
+    <a href="../index.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Portfolio</a>
+
+    <div class="tool-header">
+        <h1><i class="fas fa-user-graduate"></i> Grade Finder</h1>
+        <p>Upload Excel and search student grades instantly</p>
+    </div>
+
+    <button class="btn secondary" onclick="downloadTemplate()">
+    <i class="fas fa-download"></i> Download Template
+</button>
+
+    <div class="card">
+        <input type="file" id="upload" accept=".xlsx,.xls">
+
+        <form onsubmit="searchGrade(); return false;">
+            <input type="text" id="searchName" placeholder="Enter student name" required>
+        </form>
+
+        <div class="actions">
+            <button class="btn primary" onclick="searchGrade()">
+                <i class="fas fa-search"></i> Search
+            </button>
+
+            <button class="btn danger" onclick="clearResult()">
+                <i class="fas fa-trash"></i> Clear
+            </button>
+        </div>
+
+        <div id="result"></div>
+    </div>
+</div>
+
+<script>
+let students = [];
+
+function downloadTemplate() {
+    const wb = XLSX.utils.book_new();
+
+    const data = [
+        { Name: "Juan Dela Cruz", Prelim: "", Midterm: "", SemiFinal: "", Final: "" }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(data);
+
+    XLSX.utils.book_append_sheet(wb, ws, "Grades");
+
+    const fileName = "Grade_Template.xlsx";
+    XLSX.writeFile(wb, fileName);
+}
+
+// Upload Excel
+document.getElementById("upload").addEventListener("change", function(e){
+    const file = e.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(event){
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, {type: "array"});
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        students = XLSX.utils.sheet_to_json(sheet);
+
+        alert("File Loaded Successfully!");
+    };
+
+    reader.readAsArrayBuffer(file);
+});
+
+// Search
+function searchGrade(){
+    const input = document.getElementById("searchName").value.trim().toLowerCase();
+    const resultDiv = document.getElementById("result");
+
+    if(students.length === 0){
+        alert("Upload Excel first!");
+        return;
+    }
+
+    const matches = students.filter(s => {
+        const key = Object.keys(s).find(k => k.toLowerCase() === "name");
+        return key && s[key].toString().toLowerCase().includes(input);
+    });
+
+    if(matches.length === 0){
+        resultDiv.innerHTML = "❌ Student not found";
+    } else {
+        const student = matches[0];
+
+        const getGrade = (field) => {
+            const key = Object.keys(student).find(k => k.toLowerCase() === field);
+            return key ? student[key] : "N/A";
+        };
+
+        resultDiv.innerHTML = `
+            <strong>${getGrade("name")}</strong><br><br>
+            <span class="grade-label">Prelim:</span> ${getGrade("prelim")}<br>
+            <span class="grade-label">Midterm:</span> ${getGrade("midterm")}<br>
+            <span class="grade-label">SemiFinal:</span> ${getGrade("semifinal")}<br>
+            <span class="grade-label">Final:</span> ${getGrade("final")}
+        `;
+    }
+}
+
+// Clear
+function clearResult(){
+    document.getElementById("searchName").value = "";
+    document.getElementById("result").innerHTML = "";
+}
+</script>
+
+</body>
+</html>

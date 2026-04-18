@@ -1,0 +1,615 @@
+/* =====================================================
+   DARK NAVY THEME — FAILED REPORT
+   Inspired by deep-navy glassmorphic UI
+   ===================================================== */
+
+/* LOADING SPLASH SCREEN */
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loading-container {
+  text-align: center;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto;
+  border: 5px solid rgba(102, 126, 234, 0.2);
+  border-top: 5px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #667eea;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.status-dot.connected {
+  background-color: #4ade80;
+  animation: none;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.status-text {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+}
+
+/* ---- Base body ---- */
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #1a1a2e !important;
+  color: #eaeaea !important;
+}
+
+/* ---- Global text color overrides for dark theme ---- */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: #eaeaea !important;
+}
+
+/* Primary-branded headings keep their accent */
+.text-primary,
+h1.text-primary,
+h2.text-primary,
+h3.text-primary {
+  color: #667eea !important;
+}
+
+/* ---- Navigation Header ---- */
+header.fixed {
+  background: rgba(22, 33, 62, 0.95) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(102, 126, 234, 0.15);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3) !important;
+}
+
+header .text-lg.font-bold {
+  color: #667eea !important;
+}
+
+header nav a {
+  color: rgba(234, 234, 234, 0.7) !important;
+  border-color: transparent !important;
+  transition: all 0.3s ease;
+}
+
+header nav a:hover {
+  color: #667eea !important;
+}
+
+header nav a.border-b-2 {
+  color: #667eea !important;
+  border-color: #667eea !important;
+}
+
+header button:hover {
+  background: rgba(102, 126, 234, 0.15) !important;
+}
+
+header .bi-person-circle {
+  color: #667eea !important;
+}
+
+/* ---- Main content area ---- */
+main {
+  color: #eaeaea;
+}
+
+/* ---- Page title ---- */
+.text-on-surface-variant {
+  color: rgba(234, 234, 234, 0.6) !important;
+}
+
+/* ---- Card / Section Panels ---- */
+.bg-surface-container-lowest,
+.bg-surface-container-low,
+.bg-surface-container,
+.bg-surface-container-high,
+.bg-surface-container-highest {
+  background-color: #16213e !important;
+  border-color: rgba(102, 126, 234, 0.15) !important;
+}
+
+section,
+aside>div {
+  border-color: rgba(102, 126, 234, 0.2) !important;
+}
+
+/* Left-border accent sections */
+.border-l-4.border-primary {
+  border-left-color: #e94560 !important;
+}
+
+/* ---- Card shadow & border ---- */
+.shadow-sm {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+.rounded-xl {
+  border-radius: 15px;
+}
+
+
+
+.text-on-secondary-fixed {
+  color: rgba(234, 234, 234, 0.5) !important;
+}
+
+/* ---- Form inputs ---- */
+input[type="text"],
+input[type="number"],
+select,
+textarea {
+  background-color: #0f3460 !important;
+  color: #eaeaea !important;
+  border: 1px solid rgba(102, 126, 234, 0.2) !important;
+  border-radius: 12px !important;
+  transition: all 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus,
+textarea:focus {
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2) !important;
+  outline: none !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(234, 234, 234, 0.3) !important;
+}
+
+select option {
+  background-color: #16213e;
+  color: #eaeaea;
+}
+
+/* Signatory underline inputs */
+.border-b.border-outline-variant {
+  border-color: rgba(102, 126, 234, 0.3) !important;
+}
+
+.border-b.border-outline-variant input {
+  background: transparent !important;
+  border: none !important;
+  color: #eaeaea !important;
+}
+
+/* ---- Status toggle group ---- */
+#statusButtonGroup {
+  border-radius: 12px;
+}
+
+.status-btn {
+  color: rgba(234, 234, 234, 0.7) !important;
+  background: transparent !important;
+  border-radius: 10px !important;
+  transition: all 0.3s ease;
+}
+
+.status-btn:hover {
+  background: rgba(102, 126, 234, 0.15) !important;
+  color: #eaeaea !important;
+}
+
+.status-btn.bg-\[\\#c8e6c9\],
+.status-btn[class*="bg-[#c8e6c9]"] {
+  background: rgba(102, 126, 234, 0.25) !important;
+  color: #667eea !important;
+}
+
+/* ---- Result buttons (FAILED / PASSED) ---- */
+.result-btn {
+  background: #0f3460 !important;
+  color: rgba(234, 234, 234, 0.7) !important;
+  border: 2px solid rgba(102, 126, 234, 0.2) !important;
+  transition: all 0.3s ease;
+}
+
+.result-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+}
+
+.result-btn.bg-error,
+.result-btn[class*="bg-error"] {
+  background: #e94560 !important;
+  color: white !important;
+  border-color: #e94560 !important;
+}
+
+.result-btn.bg-\[\\#1a237e\],
+.result-btn[class*="bg-[#1a237e]"] {
+  background: linear-gradient(135deg, #667eea, #764ba2) !important;
+  color: white !important;
+  border-color: #667eea !important;
+}
+
+.result-btn i {
+  color: inherit !important;
+}
+
+/* ---- Primary action buttons ---- */
+.bg-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border: none !important;
+  transition: all 0.3s ease;
+}
+
+.bg-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 25px rgba(102, 126, 234, 0.4) !important;
+}
+
+/* Tab buttons (override for active state) */
+#tabAddMode.bg-primary,
+#tabEditMode.bg-\[\\#e0a800\],
+#tabEditMode[class*="bg-[#e0a800]"],
+#tabBulkMode.bg-tertiary-fixed-dim {
+  border: none !important;
+}
+
+/* Edit mode tab */
+#tabEditMode[class*="bg-[#e0a800]"] {
+  background: linear-gradient(135deg, #e94560 0%, #c0392b 100%) !important;
+}
+
+/* Bulk import tab */
+#tabBulkMode.bg-tertiary-fixed-dim {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%) !important;
+  color: white !important;
+}
+
+/* Secondary / neutral buttons */
+button.bg-surface-container,
+button[class*="bg-surface-container"] {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #eaeaea !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  transition: all 0.3s ease;
+  text-shadow: 0 0 black;
+}
+
+button.bg-surface-container:hover,
+button[class*="bg-surface-container"]:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  transform: translateY(-1px);
+}
+
+/* Update button */
+#btnUpdate {
+  background: linear-gradient(135deg, #e94560 0%, #c0392b 100%) !important;
+}
+
+/* ---- Mode tabs container ---- */
+
+
+/* Inactive tabs */
+button.bg-transparent {
+  color: rgba(234, 234, 234, 0.5) !important;
+}
+
+button.bg-transparent:hover {
+  background: rgba(102, 126, 234, 0.1) !important;
+  color: #eaeaea !important;
+}
+
+/* ---- Global settings bar ---- */
+.flex.justify-between.items-center.bg-surface-container-low {
+  background: rgba(15, 52, 96, 0.6) !important;
+  border: 1px solid rgba(102, 126, 234, 0.15) !important;
+}
+
+/* Lock/unlock toggle button */
+#btnToggleLock {
+  border-color: rgba(102, 126, 234, 0.3) !important;
+}
+
+.bg-error-container {
+  background: rgba(233, 69, 96, 0.15) !important;
+}
+
+.text-on-error-container {
+  color: #e94560 !important;
+}
+
+.border-error\/20 {
+  border-color: rgba(233, 69, 96, 0.2) !important;
+}
+
+/* ---- Lock icon colors ---- */
+#iconLock.text-\[\\#e0a800\],
+#iconLock[class*="text-[#e0a800]"] {
+  color: #667eea !important;
+}
+
+.bi-lock-fill.text-error {
+  color: #e94560 !important;
+}
+
+/* ---- Scrollable textareas ---- */
+textarea {
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+textarea.scrollable {
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: auto;
+  resize: vertical;
+}
+
+/* Scrollbar styling — navy theme */
+textarea.scrollable::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+textarea.scrollable::-webkit-scrollbar-track,
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 10px;
+}
+
+textarea.scrollable::-webkit-scrollbar-thumb,
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: rgba(102, 126, 234, 0.3);
+  border-radius: 10px;
+}
+
+textarea.scrollable::-webkit-scrollbar-thumb:hover,
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(102, 126, 234, 0.5);
+}
+
+/* Firefox scrollbar */
+textarea.scrollable {
+  scrollbar-color: rgba(102, 126, 234, 0.3) rgba(102, 126, 234, 0.05);
+  scrollbar-width: thin;
+}
+
+/* Auto-expand textareas */
+textarea[data-autoresize] {
+  resize: none;
+  overflow: hidden;
+  min-height: auto;
+}
+
+/* Scrollable text inputs */
+input[type="text"],
+input[type="number"] {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+input[data-scrollable] {
+  overflow-x: auto;
+}
+
+/* ---- Table (Database page) ---- */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+thead tr {
+  background: #0f3460 !important;
+}
+
+thead th {
+  color: rgba(234, 234, 234, 0.6) !important;
+  border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+tbody tr {
+  border-color: rgba(102, 126, 234, 0.1) !important;
+  transition: all 0.2s ease;
+}
+
+tbody tr:hover {
+  background: rgba(102, 126, 234, 0.08) !important;
+}
+
+tbody td {
+  color: #eaeaea !important;
+}
+
+td .font-bold.text-primary {
+  color: #667eea !important;
+}
+
+/* Status badge in table */
+tbody span[class*="bg-surface-container-highest"] {
+  background: rgba(102, 126, 234, 0.15) !important;
+  color: #667eea !important;
+  border-color: rgba(102, 126, 234, 0.3) !important;
+}
+
+/* Edit button in table */
+button[class*="bg-[#e0a800]"] {
+  background: linear-gradient(135deg, #667eea, #764ba2) !important;
+  transition: all 0.3s ease;
+}
+
+button[class*="bg-[#e0a800]"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+/* Delete button in table */
+button.bg-error {
+  background: #e94560 !important;
+}
+
+button.bg-error:hover {
+  background: rgba(233, 69, 96, 0.2) !important;
+  color: #e94560 !important;
+}
+
+/* ---- Skeleton loader ---- */
+.animate-pulse div[class*="bg-surface-container-highest"] {
+  background: rgba(102, 126, 234, 0.1) !important;
+}
+
+/* ---- Toast notifications — dark theme ---- */
+#toastContainer>div {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Info toast */
+div[class*="bg-surface-container-highest"][class*="border-outline-variant"] {
+  background: rgba(22, 33, 62, 0.95) !important;
+  border-color: rgba(102, 126, 234, 0.3) !important;
+  color: #eaeaea !important;
+}
+
+/* Success toast */
+div[class*="bg-[#e8f5e9]"] {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  color: #4ade80 !important;
+}
+
+/* Warning toast */
+div[class*="bg-[#fff8e1]"] {
+  background: rgba(245, 158, 11, 0.15) !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+  color: #fbbf24 !important;
+}
+
+/* Error toast */
+div.bg-error-container {
+  background: rgba(233, 69, 96, 0.15) !important;
+  border-color: rgba(233, 69, 96, 0.3) !important;
+  color: #e94560 !important;
+}
+
+/* Loading toast */
+div[class*="bg-primary-fixed"] {
+  background: rgba(102, 126, 234, 0.15) !important;
+  border-color: rgba(102, 126, 234, 0.3) !important;
+  color: #667eea !important;
+}
+
+/* ---- Bulk import section ---- */
+#pasteZone {
+  border-color: rgba(102, 126, 234, 0.2) !important;
+}
+
+.bg-primary\/10 {
+  background: rgba(102, 126, 234, 0.1) !important;
+}
+
+.border-primary\/30 {
+  border-color: rgba(102, 126, 234, 0.2) !important;
+}
+
+/* Bulk preview table rows */
+#bulkPreviewBody tr:hover {
+  background: rgba(102, 126, 234, 0.08) !important;
+}
+
+/* ---- Footer ---- */
+footer p {
+  color: rgba(234, 234, 234, 0.3) !important;
+}
+
+/* ---- Micro-animations ---- */
+section,
+aside>div,
+.result-btn,
+.status-btn {
+  transition: all 0.3s ease;
+}
+
+section:hover,
+aside>div:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+}
+
+/* ---- Feature cards (bulk section) ---- */
+.feature-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.feature-card i {
+  color: #667eea;
+}
+
+/* ---- Active status btn custom ---- */
+.status-btn.selected {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+.status-btn.active {
+  background-color: rgba(102, 126, 234, 0.25) !important;
+  color: #667eea !important;
+  font-weight: 600;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  header.fixed {
+    background: rgba(22, 33, 62, 0.98) !important;
+  }
+}
