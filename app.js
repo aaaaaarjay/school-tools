@@ -1252,7 +1252,7 @@ function showSettings() {
 function saveProfile() {
   const newName = document.getElementById('settingsDisplayName').value.trim();
   if (!newName) {
-    alert('Display name cannot be empty.');
+    showToast('Display name cannot be empty.', 'error');
     return;
   }
 
@@ -1270,7 +1270,7 @@ function saveProfile() {
 
   // Refresh navbar
   renderNavbar();
-  alert('Profile saved!');
+  showToast('Profile saved!', 'success');
 }
 
 function handleAvatarUpload(event) {
@@ -1278,7 +1278,7 @@ function handleAvatarUpload(event) {
   if (!file) return;
 
   if (file.size > 500000) {
-    alert('Image too large. Please use an image under 500KB.');
+    showToast('Image too large. Please use an image under 500KB.', 'warning');
     return;
   }
 
@@ -1314,12 +1314,12 @@ async function saveCredentials() {
   const newPassword = document.getElementById('settingsNewPassword').value;
 
   if (!currentPwd) {
-    alert('Please enter your current password to confirm changes.');
+    showToast('Please enter your current password to confirm changes.', 'warning');
     return;
   }
 
   if (!newUsername && !newPassword) {
-    alert('Enter a new username, new password, or both.');
+    showToast('Enter a new username, new password, or both.', 'warning');
     return;
   }
 
@@ -1329,7 +1329,7 @@ async function saveCredentials() {
   const userIdx = users.findIndex(u => u.usernameHash === currentUser.usernameHash);
 
   if (userIdx === -1 || users[userIdx].passwordHash !== currentPwdHash) {
-    alert('Current password is incorrect.');
+    showToast('Current password is incorrect.', 'error');
     return;
   }
 
@@ -1355,7 +1355,7 @@ async function saveCredentials() {
   document.getElementById('settingsNewPassword').value = '';
   document.getElementById('settingsCurrentPassword').value = '';
 
-  alert('Credentials updated successfully!');
+  showToast('Credentials updated successfully!', 'success');
 }
 
 async function addUser() {
@@ -1364,7 +1364,7 @@ async function addUser() {
   const displayName = document.getElementById('newUserDisplayName').value.trim();
 
   if (!username || !password || !displayName) {
-    alert('Please fill in all fields (username, password, display name).');
+    showToast('Please fill in all fields (username, password, display name).', 'warning');
     return;
   }
 
@@ -1375,7 +1375,7 @@ async function addUser() {
 
   // Check for duplicate username
   if (users.find(u => u.usernameHash === usernameHash)) {
-    alert('A user with this username already exists.');
+    showToast('A user with this username already exists.', 'error');
     return;
   }
 
@@ -1395,7 +1395,7 @@ async function addUser() {
   document.getElementById('newUserDisplayName').value = '';
 
   renderUsersList();
-  alert(`Teacher "${displayName}" added successfully!`);
+  showToast(`Teacher "${displayName}" added successfully!`, 'success');
 }
 
 function removeUser(usernameHash) {
@@ -1442,6 +1442,41 @@ function renderUsersList() {
   });
 
   container.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════
+// TOAST NOTIFICATIONS
+// ══════════════════════════════════════════════════
+
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+
+  let icon = 'fa-check-circle';
+  if (type === 'error') icon = 'fa-circle-xmark';
+  if (type === 'warning') icon = 'fa-triangle-exclamation';
+  if (type === 'info') icon = 'fa-circle-info';
+
+  toast.innerHTML = `
+    <i class="fas ${icon}"></i>
+    <span>${message}</span>
+  `;
+
+  container.appendChild(toast);
+
+  // Trigger animation
+  setTimeout(() => toast.classList.add('show'), 10);
+
+  // Remove after 3s
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 300);
+  }, 3000);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
