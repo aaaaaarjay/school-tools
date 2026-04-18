@@ -158,7 +158,15 @@ function showDashboard() {
   // Render
   renderNavbar();
   renderSidebar();
-  renderHome();
+
+  // Restore the last view from the URL hash (or fall back to home)
+  const hash = location.hash.replace('#', '');
+  const savedTool = hash || localStorage.getItem(LAST_TOOL_KEY);
+  if (savedTool && TOOLS.find(t => t.id === savedTool)) {
+    loadTool(savedTool);
+  } else {
+    renderHome();
+  }
 
   // Restore sidebar state
   const savedSidebar = localStorage.getItem(SIDEBAR_KEY);
@@ -313,6 +321,10 @@ function renderHome() {
   setActiveSidebarItem('home');
   updateBreadcrumb(null);
 
+  // Clear hash and last tool when navigating home
+  history.replaceState(null, '', location.pathname + location.search);
+  localStorage.removeItem(LAST_TOOL_KEY);
+
   const homeView = document.getElementById('homeView');
   const toolView = document.getElementById('toolView');
 
@@ -424,8 +436,9 @@ function loadTool(toolId) {
     document.getElementById('toolLoaderText').textContent = 'Failed to load tool.';
   };
 
-  // Save last tool
+  // Save last tool and update URL hash
   localStorage.setItem(LAST_TOOL_KEY, toolId);
+  history.replaceState(null, '', '#' + toolId);
 }
 
 function autoSwitchScheduleAdmin(iframe) {
@@ -1161,6 +1174,17 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && currentTool && currentUser) {
       navigateHome();
+    }
+  });
+
+  // Handle browser back/forward navigation via hash changes
+  window.addEventListener('hashchange', () => {
+    if (!currentUser) return;
+    const hash = location.hash.replace('#', '');
+    if (hash && TOOLS.find(t => t.id === hash)) {
+      loadTool(hash);
+    } else {
+      renderHome();
     }
   });
 
