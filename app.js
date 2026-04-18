@@ -440,7 +440,7 @@ function loadTool(toolId) {
   history.replaceState(null, '', '#' + toolId);
 }
 
-function autoSwitchScheduleAdmin(iframe) {
+async function autoSwitchScheduleAdmin(iframe) {
   try {
     const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
 
@@ -473,6 +473,11 @@ function autoSwitchScheduleAdmin(iframe) {
     const cleanupToggle = iframeDoc.getElementById('auto-cleanup-toggle');
     if (cleanupToggle && iframe.contentWindow.autoCleanupEnabled !== undefined) {
       cleanupToggle.checked = iframe.contentWindow.autoCleanupEnabled;
+    }
+
+    // Wait for schedule data to be loaded before populating preview
+    if (iframe.contentWindow.scheduleReady) {
+      await iframe.contentWindow.scheduleReady;
     }
 
     // Trigger admin preview population

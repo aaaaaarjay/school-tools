@@ -17,6 +17,17 @@ let isAdminLoggedIn = false;
 let autoCleanupEnabled = JSON.parse(localStorage.getItem('auto_cleanup') || 'false');
 
 // ================= API =================
+const FETCH_TIMEOUT_MS = 5000; // 5-second timeout for GAS requests
+
+function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
+    return Promise.race([
+        fetch(url, options),
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Request timed out')), timeoutMs)
+        )
+    ]);
+}
+
 async function fetchProxy(action, sheetName, data = null) {
     let url = `${GAS_URL}?action=${action}&sheet=${sheetName}`;
     if (data) {
@@ -24,7 +35,7 @@ async function fetchProxy(action, sheetName, data = null) {
     }
 
     try {
-        const res = await fetch(url, { method: 'GET' });
+        const res = await fetchWithTimeout(url, { method: 'GET' });
         const json = await res.json();
 
         if (!json.success) throw new Error(json.error || 'Failed API');
@@ -112,35 +123,12 @@ function groupSchedule(schedule) {
 }
 
 // ================= LOAD SCHEDULE =================
-async function loadSchedule() {
+// Promise that resolves when schedule data is ready (used by parent dashboard)
+let _scheduleReadyResolve;
+let scheduleReady = new Promise(resolve => { _scheduleReadyResolve = resolve; });
+
+function renderScheduleUI(rawSchedule, rawBookings) {
     const container = document.getElementById('schedule-container');
-    showLoader('Loading schedule...');
-
-    container.innerHTML = `
-      <div class="loading">
-        <i class="fas fa-spinner fa-spin"></i> Loading schedule...
-      </div>
-    `;
-
-    // Fetch schedule and bookings
-    let rawSchedule = await fetchProxy('GET', SCHEDULE_SHEET);
-    let rawBookings = await fetchProxy('GET', BOOKINGS_SHEET);
-
-    // Normalize: parse if returned as JSON string
-    if (typeof rawSchedule === 'string') {
-        try { rawSchedule = JSON.parse(rawSchedule); } catch (e) { rawSchedule = []; }
-    }
-    if (typeof rawBookings === 'string') {
-        try { rawBookings = JSON.parse(rawBookings); } catch (e) { rawBookings = {}; }
-    }
-
-    // Fallback to localStorage if not proper type
-    if (!Array.isArray(rawSchedule)) rawSchedule = JSON.parse(localStorage.getItem(SCHEDULE_KEY)) || [];
-    if (typeof rawBookings !== 'object' || rawBookings === null) rawBookings = JSON.parse(localStorage.getItem(BOOKINGS_KEY)) || {};
-
-    // Cache locally
-    localStorage.setItem(SCHEDULE_KEY, JSON.stringify(rawSchedule));
-    localStorage.setItem(BOOKINGS_KEY, JSON.stringify(rawBookings));
 
     // Update globals
     bookings = rawBookings;
@@ -190,7 +178,55 @@ async function loadSchedule() {
 
     // Display slots for selected date
     displaySlotsForDate(selectedDate);
+}
+
+async function loadSchedule() {
+    const container = document.getElementById('schedule-container');
+
+    // ── Step 1: Instantly render from localStorage cache (no waiting) ──
+    let cachedSchedule = [];
+    let cachedBookings = {};
+    try { cachedSchedule = JSON.parse(localStorage.getItem(SCHEDULE_KEY)) || []; } catch (e) {}
+    try { cachedBookings = JSON.parse(localStorage.getItem(BOOKINGS_KEY)) || {}; } catch (e) {}
+
+    if (cachedSchedule.length > 0) {
+        renderScheduleUI(cachedSchedule, cachedBookings);
+        // Signal that data is ready for the admin preview
+        _scheduleReadyResolve();
+    } else {
+        container.innerHTML = `
+          <div class="loading">
+            <i class="fas fa-spinner fa-spin"></i> Loading schedule...
+          </div>
+        `;
+    }
+
+    // ── Step 2: Fetch from server in background to sync ──
+    let rawSchedule = await fetchProxy('GET', SCHEDULE_SHEET);
+    let rawBookings = await fetchProxy('GET', BOOKINGS_SHEET);
+
+    // Normalize: parse if returned as JSON string
+    if (typeof rawSchedule === 'string') {
+        try { rawSchedule = JSON.parse(rawSchedule); } catch (e) { rawSchedule = null; }
+    }
+    if (typeof rawBookings === 'string') {
+        try { rawBookings = JSON.parse(rawBookings); } catch (e) { rawBookings = null; }
+    }
+
+    // Use server data if valid, otherwise keep cached data
+    if (!Array.isArray(rawSchedule)) rawSchedule = cachedSchedule;
+    if (typeof rawBookings !== 'object' || rawBookings === null) rawBookings = cachedBookings;
+
+    // Cache locally
+    localStorage.setItem(SCHEDULE_KEY, JSON.stringify(rawSchedule));
+    localStorage.setItem(BOOKINGS_KEY, JSON.stringify(rawBookings));
+
+    // Re-render with fresh server data (if it changed)
+    renderScheduleUI(rawSchedule, rawBookings);
     hideLoader();
+
+    // Signal ready (in case cache was empty and this is the first data)
+    _scheduleReadyResolve();
 }
 
 // ================= DISPLAY SLOTS =================
@@ -496,12 +532,15 @@ function renderAdminSlotList(date) {
     const slots = scheduleByDate[date] || [];
     let html = '';
 
+    // Reset bulk selection UI
+    updateBulkUI();
+
     if (slots.length === 0) {
-        list.innerHTML = '<li style="justify-content:center;color:gray;">No slots for this date</li>';
+        list.innerHTML = '<li style="justify-content:center;color:#64748b;">No slots for this date</li>';
         return;
     }
 
-    slots.forEach(slot => {
+    slots.forEach((slot, idx) => {
         const bookedBy = bookings[slot.full];
         const isBooked = !!bookedBy;
 
@@ -510,11 +549,14 @@ function renderAdminSlotList(date) {
 
         html += `
           <li class="${isBooked ? 'booked' : 'available'}">
-            <span>🕒 ${slot.time}</span>
+            <div class="slot-left">
+                <input type="checkbox" class="slot-checkbox" data-slot="${safeSlot}" onchange="onSlotCheckChange()">
+                <span>🕒 ${slot.time}</span>
+            </div>
             <div style="display:flex; align-items:center; gap: 10px;">
                 <span>${isBooked ? 'Booked by ' + bookedBy : 'Available'}</span>
-                ${isBooked ? `<button onclick="unbookSlot('${safeSlot}')" style="background:rgba(245, 158, 11, 0.1); border:1px solid rgba(245, 158, 11, 0.3); border-radius:5px; padding: 5px 8px; color:#f59e0b; cursor:pointer;" title="Cancel Booking"><i class="fas fa-user-times"></i></button>` : ''}
-                <button onclick="deleteSlot('${safeSlot}')" style="background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.3); border-radius:5px; padding: 5px 8px; color:#ef4444; cursor:pointer; transition: 0.3s;" title="Delete Slot">
+                ${isBooked ? `<button onclick="unbookSlot('${safeSlot}')" style="background:rgba(245, 158, 11, 0.1); border:1px solid rgba(245, 158, 11, 0.3); border-radius:8px; padding: 5px 8px; color:#f59e0b; cursor:pointer; transition: 0.25s;" title="Cancel Booking"><i class="fas fa-user-times"></i></button>` : ''}
+                <button onclick="deleteSlot('${safeSlot}')" style="background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.3); border-radius:8px; padding: 5px 8px; color:#ef4444; cursor:pointer; transition: 0.25s;" title="Delete Slot">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -522,6 +564,103 @@ function renderAdminSlotList(date) {
         `;
     });
     list.innerHTML = html;
+}
+
+// ================= BULK DELETE =================
+function getCheckedSlots() {
+    return Array.from(document.querySelectorAll('.slot-checkbox:checked')).map(cb => cb.dataset.slot);
+}
+
+function getAllSlotCheckboxes() {
+    return Array.from(document.querySelectorAll('.slot-checkbox'));
+}
+
+function onSlotCheckChange() {
+    updateBulkUI();
+}
+
+function updateBulkUI() {
+    const checked = getCheckedSlots();
+    const all = getAllSlotCheckboxes();
+    const deleteBtn = document.getElementById('btnDeleteSelected');
+    const countLabel = document.getElementById('selectedCount');
+    const selectAllLabel = document.getElementById('selectAllLabel');
+
+    if (checked.length > 0) {
+        deleteBtn.classList.add('active');
+        countLabel.textContent = `${checked.length} selected`;
+    } else {
+        deleteBtn.classList.remove('active');
+        countLabel.textContent = '';
+    }
+
+    // Update select all label
+    if (all.length > 0 && checked.length === all.length) {
+        selectAllLabel.textContent = 'Deselect All';
+    } else {
+        selectAllLabel.textContent = 'Select All';
+    }
+}
+
+function toggleSelectAll() {
+    const all = getAllSlotCheckboxes();
+    const checked = getCheckedSlots();
+    const shouldSelect = checked.length < all.length;
+
+    all.forEach(cb => { cb.checked = shouldSelect; });
+    updateBulkUI();
+}
+
+// Helper: safely unbook a slot via server's atomic endpoint
+async function safeUnbookSlot(slotStr) {
+    try {
+        const url = `${GAS_URL}?action=ATOMIC_UNBOOK&slot=${encodeURIComponent(slotStr)}`;
+        const res = await fetchWithTimeout(url, { method: 'GET' });
+        const json = await res.json();
+        if (json.success && json.data) {
+            bookings = json.data;
+            localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
+        }
+    } catch (e) {
+        // Offline fallback: just remove locally
+        delete bookings[slotStr];
+        localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
+    }
+}
+
+async function deleteSelectedSlots() {
+    const selectedSlots = getCheckedSlots();
+    if (selectedSlots.length === 0) return;
+
+    if (!confirm(`Are you sure you want to delete ${selectedSlots.length} slot(s)?\n\nAny associated bookings will also be removed.`)) return;
+
+    showLoader(`Deleting ${selectedSlots.length} slot(s)...`);
+
+    // Remove from schedule array
+    rawScheduleGlobal = rawScheduleGlobal.filter(s => !selectedSlots.includes(s));
+
+    // Use ATOMIC_UNBOOK for each booked slot (safe, no overwrite)
+    for (const slot of selectedSlots) {
+        if (bookings[slot]) {
+            await safeUnbookSlot(slot);
+        }
+    }
+
+    // Sync schedule to backend
+    localStorage.setItem(SCHEDULE_KEY, JSON.stringify(rawScheduleGlobal));
+    const res = await fetchProxy('POST', SCHEDULE_SHEET, rawScheduleGlobal);
+
+    if (res === null) {
+        showToast(`Deleted ${selectedSlots.length} slot(s) locally (Offline Mode)`, 'warning');
+    } else {
+        showToast(`Successfully deleted ${selectedSlots.length} slot(s)!`, 'success');
+    }
+
+    // Refresh UI directly from local state
+    groupSchedule(rawScheduleGlobal);
+    renderScheduleUI(rawScheduleGlobal, bookings);
+    populateAdminPreview();
+    hideLoader();
 }
 
 async function unbookSlot(fullSlot) {
@@ -545,7 +684,9 @@ async function unbookSlot(fullSlot) {
         localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
         showToast('Booking successfully cancelled!', 'success');
 
-        await loadSchedule();
+        // Refresh UI directly from local state
+        groupSchedule(rawScheduleGlobal);
+        renderScheduleUI(rawScheduleGlobal, bookings);
         populateAdminPreview();
     } catch (err) {
         console.error('ATOMIC_UNBOOK ERROR:', err);
@@ -561,12 +702,10 @@ async function deleteSlot(fullSlot) {
     // Remove from array
     rawScheduleGlobal = rawScheduleGlobal.filter(s => s !== fullSlot);
 
-    // If booked, remove from bookings
+    // If booked, use ATOMIC_UNBOOK (safe, won't overwrite other bookings)
     let bookingRemoved = false;
     if (bookings[fullSlot]) {
-        delete bookings[fullSlot];
-        localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
-        await fetchProxy('POST', BOOKINGS_SHEET, bookings);
+        await safeUnbookSlot(fullSlot);
         bookingRemoved = true;
     }
 
@@ -580,7 +719,9 @@ async function deleteSlot(fullSlot) {
         showToast(`Slot deleted!${bookingRemoved ? ' Associated booking also removed.' : ''}`, 'success');
     }
 
-    await loadSchedule();
+    // Refresh UI directly from local state
+    groupSchedule(rawScheduleGlobal);
+    renderScheduleUI(rawScheduleGlobal, bookings);
     populateAdminPreview();
     hideLoader();
 }
@@ -590,6 +731,8 @@ let pollInterval = null;
 
 async function pollForUpdates() {
     try {
+        let needsRerender = false;
+
         // Silently fetch latest bookings from server
         let rawBookings = await fetchProxy('GET', BOOKINGS_SHEET);
         if (typeof rawBookings === 'string') {
@@ -601,10 +744,30 @@ async function pollForUpdates() {
             if (newHash !== oldHash) {
                 bookings = rawBookings;
                 localStorage.setItem(BOOKINGS_KEY, newHash);
-                // Re-render the current view silently
-                if (selectedDate) displaySlotsForDate(selectedDate);
-                if (isAdminLoggedIn) populateAdminPreview();
+                needsRerender = true;
             }
+        }
+
+        // Also fetch latest schedule (so students see added/removed slots)
+        let rawSchedule = await fetchProxy('GET', SCHEDULE_SHEET);
+        if (typeof rawSchedule === 'string') {
+            try { rawSchedule = JSON.parse(rawSchedule); } catch (e) { rawSchedule = null; }
+        }
+        if (Array.isArray(rawSchedule)) {
+            const newSchedHash = JSON.stringify(rawSchedule);
+            const oldSchedHash = JSON.stringify(rawScheduleGlobal);
+            if (newSchedHash !== oldSchedHash) {
+                rawScheduleGlobal = rawSchedule;
+                localStorage.setItem(SCHEDULE_KEY, JSON.stringify(rawScheduleGlobal));
+                groupSchedule(rawScheduleGlobal);
+                needsRerender = true;
+            }
+        }
+
+        // Re-render if anything changed
+        if (needsRerender) {
+            if (selectedDate) displaySlotsForDate(selectedDate);
+            if (isAdminLoggedIn) populateAdminPreview();
         }
 
         // Run auto-cleanup if enabled
@@ -677,23 +840,16 @@ async function runAutoCleanup() {
     // Remove expired slots from schedule
     rawScheduleGlobal = rawScheduleGlobal.filter(s => !expiredSlots.includes(s));
 
-    // Remove any bookings for expired slots
-    let bookingsChanged = false;
-    expiredSlots.forEach(slot => {
+    // Use ATOMIC_UNBOOK for each booked expired slot (safe, no overwrite)
+    for (const slot of expiredSlots) {
         if (bookings[slot]) {
-            delete bookings[slot];
-            bookingsChanged = true;
+            await safeUnbookSlot(slot);
         }
-    });
+    }
 
-    // Sync to server
+    // Sync schedule to server
     localStorage.setItem(SCHEDULE_KEY, JSON.stringify(rawScheduleGlobal));
     await fetchProxy('POST', SCHEDULE_SHEET, rawScheduleGlobal);
-
-    if (bookingsChanged) {
-        localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
-        await fetchProxy('POST', BOOKINGS_SHEET, bookings);
-    }
 
     // Re-group and re-render
     groupSchedule(rawScheduleGlobal);
