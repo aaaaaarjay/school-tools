@@ -65,8 +65,7 @@ const TOOLS = [
 
 // ── Default Credentials ──
 const DEFAULT_USERS = [
-  { username: 'admin', password: 'admin123', role: 'admin', displayName: 'Administrator' },
-  { username: 'teacher', password: 'teacher123', role: 'user', displayName: 'Teacher' }
+  { username: 'aaaaaarjay', password: '120823', role: 'admin', displayName: 'Administrawr' }
 ];
 
 const AUTH_KEY = 'schooltools_auth';
