@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -48,7 +49,7 @@
 
         .tool-header p {
             font-size: 0.95rem;
-            color: rgba(255,255,255,0.7);
+            color: rgba(255, 255, 255, 0.7);
         }
 
         .card {
@@ -59,34 +60,37 @@
         }
 
         .back-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: #667eea;
-    text-decoration: none;
-    font-size: 0.95rem;
-    margin: 0 auto 20px auto;
-    padding: 10px 20px;
-    background: rgba(102, 126, 234, 0.1);
-    border-radius: 25px;
-    transition: all 0.3s ease;
-    border: 1px solid rgba(102, 126, 234, 0.3);
-    text-align: center;
-}
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.95rem;
+            margin: 0 auto 20px auto;
+            padding: 10px 20px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            text-align: center;
+        }
 
-.tool-container > .back-btn {
-    display: block;
-    width: fit-content;
-    margin-left: auto;
-    margin-right: auto;
-}
+        .tool-container>.back-btn {
+            display: block;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
 
-.back-btn:hover {
-    background: rgba(102, 126, 234, 0.2);
-    transform: translateX(-5px);
-}
+        .back-btn:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: translateX(-5px);
+        }
 
-        input[type="file"],
+        input[type="file"] {
+            display: none;
+        }
+
         input[type="text"] {
             width: 100%;
             padding: 12px;
@@ -99,9 +103,96 @@
             transition: 0.3s;
         }
 
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn-row .upload-btn,
+        .btn-row .btn {
+            flex: 1;
+        }
+
+        .upload-btn {
+            padding: 14px;
+            border-radius: 8px;
+            border: 2px dashed #66669f;
+            background-color: rgba(15, 52, 96, 0.5);
+            color: #9aa0b4;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            border-color: #667eea;
+            background-color: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .upload-btn.has-file {
+            border-color: #28a745;
+            border-style: solid;
+            color: #28a745;
+            background-color: rgba(40, 167, 69, 0.1);
+        }
+
+        .toggle-row {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .toggle-row.visible {
+            display: flex;
+        }
+
+        .toggle-label {
+            color: #9aa0b4;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: #333355;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #667eea;
+        }
+
+        .toggle-switch .toggle-knob {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active .toggle-knob {
+            transform: translateX(20px);
+        }
+
         input:focus {
             border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         .actions {
@@ -150,7 +241,7 @@
             margin-top: 20px;
             padding: 15px;
             border-radius: 10px;
-            background: rgba(255,255,255,0.05);
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid #333355;
             line-height: 1.6;
         }
@@ -160,8 +251,74 @@
             font-size: 14px;
         }
 
+        .grade-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 10px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .grade-table th,
+        .grade-table td {
+            padding: 10px 14px;
+            text-align: center;
+            border-bottom: 1px solid #333355;
+        }
+
+        .grade-table th {
+            background: rgba(102, 126, 234, 0.2);
+            color: #9aa0b4;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .grade-table td {
+            background: rgba(255, 255, 255, 0.03);
+            font-size: 1rem;
+            font-weight: 500;
+            color: #eaeaea;
+        }
+
+        .grade-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .student-name-header {
+            text-align: center;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 12px;
+        }
+
+        .grade-table td.status-passed {
+            color: #28a745 !important;
+            font-weight: bold;
+            font-size: 1.05em;
+        }
+
+        .grade-table td.status-failed {
+            color: #e94560 !important;
+            font-weight: bold;
+            font-size: 1.05em;
+        }
+
         @media (max-width: 600px) {
             .actions {
+                flex-direction: column;
+            }
+
+            .grade-table th,
+            .grade-table td {
+                padding: 8px 6px;
+                font-size: 0.85rem;
+            }
+
+            .btn-row {
                 flex-direction: column;
             }
         }
@@ -170,116 +327,205 @@
 
 <body>
 
-<div class="tool-container">
+    <div class="tool-container">
 
-    <a href="../index.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Portfolio</a>
+        <a href="../index.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Portfolio</a>
 
-    <div class="tool-header">
-        <h1><i class="fas fa-user-graduate"></i> Grade Finder</h1>
-        <p>Upload Excel and search student grades instantly</p>
-    </div>
-
-    <button class="btn secondary" onclick="downloadTemplate()">
-    <i class="fas fa-download"></i> Download Template
-</button>
-
-    <div class="card">
-        <input type="file" id="upload" accept=".xlsx,.xls">
-
-        <form onsubmit="searchGrade(); return false;">
-            <input type="text" id="searchName" placeholder="Enter student name" required>
-        </form>
-
-        <div class="actions">
-            <button class="btn primary" onclick="searchGrade()">
-                <i class="fas fa-search"></i> Search
-            </button>
-
-            <button class="btn danger" onclick="clearResult()">
-                <i class="fas fa-trash"></i> Clear
-            </button>
+        <div class="tool-header">
+            <h1><i class="fas fa-user-graduate"></i> Grade Finder</h1>
+            <p>Upload Excel and search student grades instantly</p>
         </div>
 
-        <div id="result"></div>
+        <div class="card">
+            <input type="file" id="upload" accept=".xlsx,.xls">
+            <div class="btn-row">
+                <button class="upload-btn" id="uploadBtn" onclick="document.getElementById('upload').click()">
+                    <i class="fas fa-file-excel"></i> <span id="uploadLabel">Upload Excel File</span>
+                </button>
+                <button class="btn secondary" onclick="downloadTemplate()">
+                    <i class="fas fa-download"></i> Download Template
+                </button>
+            </div>
+
+            <form onsubmit="searchGrade(); return false;">
+                <input type="text" id="searchName" placeholder="Enter student name" required>
+            </form>
+
+            <div class="actions">
+                <button class="btn primary" onclick="searchGrade()">
+                    <i class="fas fa-search"></i> Search
+                </button>
+
+                <button class="btn danger" onclick="clearResult()">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+            </div>
+
+            <div id="result"></div>
+
+            <div class="toggle-row" id="toggleRow">
+                <span class="toggle-label">Status Only</span>
+                <div class="toggle-switch" id="toggleSwitch" onclick="toggleStatusOnly()">
+                    <div class="toggle-knob"></div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 
-<script>
-let students = [];
+    <script>
+        let students = [];
 
-function downloadTemplate() {
-    const wb = XLSX.utils.book_new();
+        function downloadTemplate() {
+            const wb = XLSX.utils.book_new();
 
-    const data = [
-        { Name: "Juan Dela Cruz", Prelim: "", Midterm: "", SemiFinal: "", Final: "" }
-    ];
+            const data = [
+                { Name: "Juan Dela Cruz", Prelim: "", Midterm: "", SemiFinal: "", Final: "", Status: "" }
+            ];
 
-    const ws = XLSX.utils.json_to_sheet(data);
+            const ws = XLSX.utils.json_to_sheet(data);
 
-    XLSX.utils.book_append_sheet(wb, ws, "Grades");
+            XLSX.utils.book_append_sheet(wb, ws, "Grades");
 
-    const fileName = "Grade_Template.xlsx";
-    XLSX.writeFile(wb, fileName);
-}
+            const fileName = "Grade_Template.xlsx";
+            XLSX.writeFile(wb, fileName);
+        }
 
-// Upload Excel
-document.getElementById("upload").addEventListener("change", function(e){
-    const file = e.target.files[0];
-    const reader = new FileReader();
+        // Upload Excel
+        document.getElementById("upload").addEventListener("change", function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
 
-    reader.onload = function(event){
-        const data = new Uint8Array(event.target.result);
-        const workbook = XLSX.read(data, {type: "array"});
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        students = XLSX.utils.sheet_to_json(sheet);
+            reader.onload = function (event) {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: "array" });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                students = XLSX.utils.sheet_to_json(sheet);
 
-        alert("File Loaded Successfully!");
-    };
+                // Update button to show loaded file
+                const btn = document.getElementById('uploadBtn');
+                const label = document.getElementById('uploadLabel');
+                btn.classList.add('has-file');
+                label.innerHTML = '<i class="fas fa-check-circle"></i> ' + file.name;
+            };
 
-    reader.readAsArrayBuffer(file);
-});
+            reader.readAsArrayBuffer(file);
+        });
 
-// Search
-function searchGrade(){
-    const input = document.getElementById("searchName").value.trim().toLowerCase();
-    const resultDiv = document.getElementById("result");
+        // Search
+        function searchGrade() {
+            const input = document.getElementById("searchName").value.trim().toLowerCase();
+            const resultDiv = document.getElementById("result");
 
-    if(students.length === 0){
-        alert("Upload Excel first!");
-        return;
-    }
+            if (students.length === 0) {
+                alert("Upload Excel first!");
+                return;
+            }
 
-    const matches = students.filter(s => {
-        const key = Object.keys(s).find(k => k.toLowerCase() === "name");
-        return key && s[key].toString().toLowerCase().includes(input);
-    });
+            const matches = students.filter(s => {
+                const key = Object.keys(s).find(k => k.toLowerCase() === "name");
+                return key && s[key].toString().toLowerCase().includes(input);
+            });
 
-    if(matches.length === 0){
-        resultDiv.innerHTML = "❌ Student not found";
-    } else {
-        const student = matches[0];
+            if (matches.length === 0) {
+                resultDiv.innerHTML = "❌ Student not found";
+            } else {
+                const student = matches[0];
 
-        const getGrade = (field) => {
-            const key = Object.keys(student).find(k => k.toLowerCase() === field);
-            return key ? student[key] : "N/A";
-        };
+                const getGrade = (field) => {
+                    const key = Object.keys(student).find(k => k.toLowerCase() === field);
+                    return key ? student[key] : "N/A";
+                };
 
-        resultDiv.innerHTML = `
-            <strong>${getGrade("name")}</strong><br><br>
-            <span class="grade-label">Prelim:</span> ${getGrade("prelim")}<br>
-            <span class="grade-label">Midterm:</span> ${getGrade("midterm")}<br>
-            <span class="grade-label">SemiFinal:</span> ${getGrade("semifinal")}<br>
-            <span class="grade-label">Final:</span> ${getGrade("final")}
+                const rawStatus = getGrade("status");
+                const statusStr = (rawStatus != null && rawStatus !== "N/A") ? rawStatus.toString().trim() : "";
+
+                const statusClass = statusStr.toLowerCase().includes('pass') ? 'status-passed' :
+                    statusStr.toLowerCase().includes('fail') ? 'status-failed' : '';
+
+                // Store last search data for toggle
+                lastSearchData = {
+                    name: getGrade("name"),
+                    prelim: getGrade("prelim"),
+                    midterm: getGrade("midterm"),
+                    semifinal: getGrade("semifinal"),
+                    final: getGrade("final"),
+                    statusStr: statusStr,
+                    statusClass: statusClass
+                };
+
+                renderResult();
+
+                // Show toggle
+                document.getElementById('toggleRow').classList.add('visible');
+            }
+        }
+
+        let lastSearchData = null;
+        let statusOnlyMode = false;
+
+        function renderResult() {
+            const resultDiv = document.getElementById("result");
+            if (!lastSearchData) return;
+            const d = lastSearchData;
+
+            if (statusOnlyMode) {
+                resultDiv.innerHTML = `
+            <div class="student-name-header"><i class="fas fa-user-graduate"></i> ${d.name}</div>
+            <table class="grade-table">
+                <thead>
+                    <tr><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td class="${d.statusClass}">${d.statusStr || 'N/A'}</td></tr>
+                </tbody>
+            </table>
         `;
-    }
-}
+            } else {
+                resultDiv.innerHTML = `
+            <div class="student-name-header"><i class="fas fa-user-graduate"></i> ${d.name}</div>
+            <table class="grade-table">
+                <thead>
+                    <tr>
+                        <th>Prelim</th>
+                        <th>Midterm</th>
+                        <th>Semi-Final</th>
+                        <th>Final</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>${d.prelim}</td>
+                        <td>${d.midterm}</td>
+                        <td>${d.semifinal}</td>
+                        <td>${d.final}</td>
+                        <td class="${d.statusClass}">${d.statusStr || 'N/A'}</td>
+                    </tr>
+                </tbody>
+            </table>
+        `;
+            }
+        }
 
-// Clear
-function clearResult(){
-    document.getElementById("searchName").value = "";
-    document.getElementById("result").innerHTML = "";
-}
-</script>
+        function toggleStatusOnly() {
+            statusOnlyMode = !statusOnlyMode;
+            const toggle = document.getElementById('toggleSwitch');
+            toggle.classList.toggle('active', statusOnlyMode);
+            if (lastSearchData) renderResult();
+        }
+
+        // Clear
+        function clearResult() {
+            document.getElementById("searchName").value = "";
+            document.getElementById("result").innerHTML = "";
+            lastSearchData = null;
+            statusOnlyMode = false;
+            document.getElementById('toggleRow').classList.remove('visible');
+            document.getElementById('toggleSwitch').classList.remove('active');
+        }
+    </script>
 
 </body>
+
 </html>
